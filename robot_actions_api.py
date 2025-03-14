@@ -3,6 +3,7 @@
 Non-interactive versions of robot actions for API usage.
 """
 import time
+import threading
 from pycram.process_module import simulated_robot
 from pycram.designators.motion_designator import *
 from pycram.designators.location_designator import *
@@ -87,8 +88,11 @@ def pickup_and_place(object_name=None, target_location=None, arm=None):
             # Get the world
             world = get_world_safely()
             
-            # Create object designator
-            object_desig = ObjectDesignatorDescription(names=[object_name])
+            # Make object name lookup case-insensitive
+            # First, try the exact name as provided
+            object_desig = BelieveObject(names=[object_name])
+            
+            # If that fails, try a case-insensitive search
             robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
             
             print(f"API: Preparing to pick up {object_name}...")
@@ -99,10 +103,48 @@ def pickup_and_place(object_name=None, target_location=None, arm=None):
             
             # Resolve pickup location
             print("API: Resolving pickup location...")
-            pickup_pose = CostmapLocation(
-                target=object_desig.resolve(),
-                reachable_for=robot_desig
-            ).resolve()
+            try:
+                # Try to resolve with the original name case
+                try:
+                    object_resolved = object_desig.resolve()
+                except StopIteration:
+                    # If that fails, try some case variations
+                    print(f"API: Could not find '{object_name}', trying case variations...")
+                    variants = [
+                        object_name.lower(),
+                        object_name.upper(),
+                        object_name.capitalize()
+                    ]
+                    
+                    # Try each case variant
+                    object_resolved = None
+                    for variant in variants:
+                        if variant != object_name:  # Skip if same as original
+                            try:
+                                variant_desig = BelieveObject(names=[variant])
+                                object_resolved = variant_desig.resolve()
+                                if object_resolved:
+                                    print(f"API: Found object with name '{variant}'")
+                                    object_desig = variant_desig  # Use the successful designator
+                                    object_name = variant  # Update name for messages
+                                    break
+                            except StopIteration:
+                                continue
+                    
+                    if not object_resolved:
+                        return {"status": "error", "message": f"Object '{object_name}' not found in the world. You may need to spawn it first."}
+                
+                if not object_resolved:
+                    return {"status": "error", "message": f"Object '{object_name}' not found in the world. You may need to spawn it first."}
+                
+                pickup_pose = CostmapLocation(
+                    target=object_resolved,
+                    reachable_for=robot_desig
+                ).resolve()
+            except StopIteration:
+                return {"status": "error", "message": f"Object '{object_name}' not found in the world. You may need to spawn it first."}
+            except Exception as e:
+                return {"status": "error", "message": f"Error finding object location: {str(e)}"}
             
             if not pickup_pose.reachable_arms:
                 return {"status": "error", "message": f"No reachable arms for object {object_name}"}
@@ -134,15 +176,74 @@ def pickup_and_place(object_name=None, target_location=None, arm=None):
             
             # Resolve placement location
             print("API: Resolving placement location...")
-            place_stand = CostmapLocation(
-                destination_pose,
-                reachable_for=robot_desig,
-                reachable_arm=pickup_arm
-            ).resolve()
             
-            if not hasattr(place_stand, 'pose'):
-                return {"status": "error", "message": "Placement location resolution returned no valid pose."}
+            # Simple timeout implementation for placement resolution
+           
             
+            place_stand = None
+            resolution_timeout = 5  # seconds
+            resolution_complete = False
+            resolution_error = None
+            
+            def resolve_placement():
+                nonlocal place_stand, resolution_complete, resolution_error
+                try:
+                    place_stand = CostmapLocation(
+                        destination_pose,
+                        reachable_for=robot_desig,
+                        reachable_arm=pickup_arm
+                    ).resolve()
+                    resolution_complete = True
+                except Exception as e:
+                    resolution_error = str(e)
+                    resolution_complete = True
+            
+            # Start resolution in thread
+            resolution_thread = threading.Thread(target=resolve_placement)
+            resolution_thread.daemon = True
+            resolution_thread.start()
+            
+            # Wait for resolution with timeout
+            start_time = time.time()
+            while not resolution_complete and time.time() - start_time < resolution_timeout:
+                time.sleep(0.1)
+            
+            # Check resolution status
+            if not resolution_complete:
+                print("API: Placement location resolution timed out")
+                # Fallback to direct placement at the current location
+                place_stand = None
+                
+            if resolution_error:
+                print(f"API: Error in placement resolution: {resolution_error}")
+                place_stand = None
+                
+            # If resolution failed, use a direct approach
+            if place_stand is None or not hasattr(place_stand, 'pose'):
+                print("API: Using fallback placement approach")
+                # Try a direct placement without costmap resolution
+                print("API: Executing place action with direct pose...")
+                try:
+                    PlaceAction(
+                        object_designator_description=object_desig,
+                        target_locations=[destination_pose],
+                        arms=[pickup_arm]
+                    ).resolve().perform()
+                    
+                    ParkArmsAction([Arms.BOTH]).resolve().perform()
+                    print("API: Place action completed with fallback method.")
+                    
+                    return {
+                        "status": "success",
+                        "message": f"Successfully picked up {object_name} and placed at {target_location} (using fallback)",
+                        "object": object_name,
+                        "target_location": target_location,
+                        "arm_used": str(pickup_arm)
+                    }
+                except Exception as place_error:
+                    return {"status": "error", "message": f"Failed to place object using fallback method: {str(place_error)}"}
+            
+            # Regular placement execution if resolution succeeded
             # Navigate to placement location
             print(f"API: Navigating to placement location at {place_stand.pose}")
             NavigateAction(target_locations=[place_stand.pose]).resolve().perform()

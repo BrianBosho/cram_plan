@@ -4,8 +4,14 @@ API interface for PyCRAM simulation functions.
 """
 from fastapi import FastAPI, Body
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse
 import uvicorn
 import sys
+import os
+import webbrowser
+import threading
+import time
 
 # Create the API app
 app = FastAPI(title="PyCRAM API")
@@ -47,6 +53,21 @@ from robot_actions_api import (
     detect_object,
     transport_object
 )
+
+# Static files mounting - if we have a 'static' directory
+if os.path.exists('static'):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Serve the robot_control.html file directly
+@app.get("/", response_class=HTMLResponse)
+async def get_robot_control():
+    """Serve the robot control interface"""
+    try:
+        with open("robot_control.html", "r") as f:
+            html_content = f.read()
+        return HTMLResponse(content=html_content)
+    except FileNotFoundError:
+        return HTMLResponse(content="<h1>Robot control interface not found.</h1>")
 
 # API endpoints
 @app.post("/execute")
@@ -110,9 +131,22 @@ async def list_commands():
         ]
     }
 
+def open_browser():
+    """Open browser after a short delay to ensure server is up"""
+    time.sleep(2)  # Wait for server to start
+    webbrowser.open('http://localhost:8001')
+    print("Browser window opened. If no window appeared, navigate to: http://localhost:8001")
+
 # Run the server when this file is executed directly
 if __name__ == "__main__":
     # Initialize the environment first
     if init_environment():
         print("Starting PyCRAM API server on port 8001...")
+        print("Web interface will be available at: http://localhost:8001")
+        print("To access from other devices, use: http://YOUR_IP_ADDRESS:8001")
+        
+        # Open browser automatically in a separate thread
+        threading.Thread(target=open_browser, daemon=True).start()
+        
+        # Start the server
         uvicorn.run(app, host="0.0.0.0", port=8001) 

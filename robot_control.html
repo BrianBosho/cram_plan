@@ -53,11 +53,61 @@
             background-color: #fff;
             min-height: 100px;
             white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .api-log {
+            color: #0066cc;
+            font-weight: bold;
+        }
+        .api-error {
+            color: #cc0000;
+            font-weight: bold;
+        }
+        .api-success {
+            color: #00aa00;
+            font-weight: bold;
+        }
+        .server-config {
+            background-color: #f0f8ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #b0d0e0;
+        }
+        .connection-status {
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .connected {
+            color: green;
+        }
+        .disconnected {
+            color: red;
         }
     </style>
 </head>
 <body>
     <h1>Robot Control Panel</h1>
+
+    <!-- Server Configuration -->
+    <div class="server-config">
+        <h2>Server Connection</h2>
+        <div style="display: flex; align-items: center;">
+            <div style="flex-grow: 1;">
+                <label for="serverAddress">API Server Address:</label>
+                <input type="text" id="serverAddress" value="http://localhost:8001" placeholder="http://server-ip:8001">
+            </div>
+            <div style="margin-left: 10px;">
+                <button id="testConnection">Test Connection</button>
+            </div>
+        </div>
+        <div>
+            <span id="connectionStatus" class="connection-status disconnected">Not connected</span>
+        </div>
+    </div>
+
     <div id="result" class="result">Results will appear here...</div>
 
     <!-- Move Robot -->
@@ -65,13 +115,13 @@
         <h2>Move Robot</h2>
         <form id="moveRobotForm">
             <label for="moveX">X Coordinate:</label>
-            <input type="number" id="moveX" step="0.1" value="1.0">
+            <input type="number" id="moveX" step="0.01" value="1.0">
             
             <label for="moveY">Y Coordinate:</label>
-            <input type="number" id="moveY" step="0.1" value="1.0">
+            <input type="number" id="moveY" step="0.01" value="1.0">
             
             <label for="moveZ">Z Coordinate:</label>
-            <input type="number" id="moveZ" step="0.1" value="0.0">
+            <input type="number" id="moveZ" step="0.01" value="0.0">
             
             <button type="submit">Move Robot</button>
         </form>
@@ -90,13 +140,13 @@
             </select>
             
             <label for="objectX">X Coordinate:</label>
-            <input type="number" id="objectX" step="0.1" value="1.4">
+            <input type="number" id="objectX" step="0.01" value="1.4">
             
             <label for="objectY">Y Coordinate:</label>
-            <input type="number" id="objectY" step="0.1" value="1.0">
+            <input type="number" id="objectY" step="0.01" value="1.0">
             
             <label for="objectZ">Z Coordinate:</label>
-            <input type="number" id="objectZ" step="0.1" value="0.95">
+            <input type="number" id="objectZ" step="0.01" value="0.95">
             
             <label for="objectColor">Color:</label>
             <select id="objectColor">
@@ -118,16 +168,16 @@
         <h2>Pickup and Place</h2>
         <form id="pickupPlaceForm">
             <label for="pickupObjectName">Object Name:</label>
-            <input type="text" id="pickupObjectName" value="cup1">
+            <input type="text" id="pickupObjectName" value="cereal">
             
             <label for="placeX">Target X Coordinate:</label>
-            <input type="number" id="placeX" step="0.1" value="0.5">
+            <input type="number" id="placeX" step="0.01" value="1.4">
             
             <label for="placeY">Target Y Coordinate:</label>
-            <input type="number" id="placeY" step="0.1" value="0.5">
+            <input type="number" id="placeY" step="0.01" value="0.5">
             
             <label for="placeZ">Target Z Coordinate:</label>
-            <input type="number" id="placeZ" step="0.1" value="0.8">
+            <input type="number" id="placeZ" step="0.01" value="0.95">
             
             <label for="pickupArm">Arm to Use:</label>
             <select id="pickupArm">
@@ -138,6 +188,7 @@
             
             <button type="submit">Pickup and Place</button>
         </form>
+        <div id="outputArea"></div>
     </div>
 
     <!-- Robot Perceive -->
@@ -192,25 +243,100 @@
             <input type="text" id="transportObjectName" value="cup1">
             
             <label for="transportX">Target X Coordinate:</label>
-            <input type="number" id="transportX" step="0.1" value="0.5">
+            <input type="number" id="transportX" step="0.01" value="0.5">
             
             <label for="transportY">Target Y Coordinate:</label>
-            <input type="number" id="transportY" step="0.1" value="0.5">
+            <input type="number" id="transportY" step="0.01" value="0.5">
             
             <label for="transportZ">Target Z Coordinate:</label>
-            <input type="number" id="transportZ" step="0.1" value="0.8">
+            <input type="number" id="transportZ" step="0.01" value="0.8">
             
             <button type="submit">Transport Object</button>
         </form>
     </div>
 
     <script>
-        const API_URL = 'http://localhost:8001/execute';
+        // Server address - automatically use current host if served directly
+        let defaultApiUrl;
+        
+        // Check if we're being served from our own server
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            // We're on a remote device - use the current host
+            defaultApiUrl = window.location.protocol + '//' + window.location.host + '/execute';
+        } else {
+            // Default for local development
+            defaultApiUrl = 'http://localhost:8001/execute';
+        }
+        
+        let API_URL = defaultApiUrl;
         const resultDiv = document.getElementById('result');
+        const serverAddressInput = document.getElementById('serverAddress');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const testConnectionBtn = document.getElementById('testConnection');
+        
+        // Set initial value based on detection
+        serverAddressInput.value = defaultApiUrl;
+        
+        // Update API URL when server address changes
+        serverAddressInput.addEventListener('change', updateApiUrl);
+        
+        function updateApiUrl() {
+            let serverAddress = serverAddressInput.value.trim();
+            if (!serverAddress.endsWith('/execute')) {
+                // Make sure we handle both with and without trailing slash
+                if (serverAddress.endsWith('/')) {
+                    serverAddress = serverAddress + 'execute';
+                } else {
+                    serverAddress = serverAddress + '/execute';
+                }
+            }
+            API_URL = serverAddress;
+            console.log("API URL updated to:", API_URL);
+        }
+        
+        // Test connection button
+        testConnectionBtn.addEventListener('click', async function() {
+            updateApiUrl();
+            connectionStatus.textContent = "Testing connection...";
+            connectionStatus.className = "connection-status";
+            
+            try {
+                // Try to get commands list as a simple test
+                const testUrl = API_URL.replace('/execute', '/commands');
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    connectionStatus.textContent = "Connected ✓";
+                    connectionStatus.className = "connection-status connected";
+                    resultDiv.innerHTML = `<span class="api-success">Successfully connected to the server!</span><br><br>Available commands:<br>${formatJsonOutput(data)}`;
+                } else {
+                    connectionStatus.textContent = "Error: " + response.statusText;
+                    connectionStatus.className = "connection-status disconnected";
+                    resultDiv.innerHTML = `<span class="api-error">Error connecting to server: ${response.status} ${response.statusText}</span>`;
+                }
+            } catch (error) {
+                connectionStatus.textContent = "Failed to connect";
+                connectionStatus.className = "connection-status disconnected";
+                resultDiv.innerHTML = `<span class="api-error">Could not connect to the server at ${API_URL.replace('/execute', '')}<br>Error: ${error.message}</span><br><br>Please check:
+                <ul>
+                    <li>Is the server running?</li>
+                    <li>Is the address correct?</li>
+                    <li>Are both devices on the same network?</li>
+                    <li>Is port 8001 open in the firewall?</li>
+                </ul>`;
+            }
+        });
         
         // Helper function for API calls
         async function callRobotApi(command, params) {
-            resultDiv.textContent = "Executing command...";
+            updateApiUrl(); // Always get the latest API URL
+            resultDiv.innerHTML = "<span class='api-log'>Executing command...</span>";
             
             try {
                 const response = await fetch(API_URL, {
@@ -224,13 +350,65 @@
                     }),
                 });
                 
+                // Update connection status based on response
+                if (response.ok) {
+                    connectionStatus.textContent = "Connected ✓";
+                    connectionStatus.className = "connection-status connected";
+                } else {
+                    connectionStatus.textContent = "Error: " + response.statusText;
+                    connectionStatus.className = "connection-status disconnected";
+                }
+                
                 const data = await response.json();
-                resultDiv.textContent = JSON.stringify(data, null, 2);
+                
+                // Format the response data with syntax highlighting
+                let formattedOutput = "";
+                
+                // Add status indicator
+                if (data.status === "success") {
+                    formattedOutput += `<span class="api-success">✓ SUCCESS:</span> ${data.message}<br><br>`;
+                } else if (data.status === "error") {
+                    formattedOutput += `<span class="api-error">✗ ERROR:</span> ${data.message}<br><br>`;
+                }
+                
+                // Add details of the response
+                formattedOutput += formatJsonOutput(data);
+                
+                resultDiv.innerHTML = formattedOutput;
                 return data;
             } catch (error) {
-                resultDiv.textContent = `Error: ${error.message}`;
+                connectionStatus.textContent = "Failed to connect";
+                connectionStatus.className = "connection-status disconnected";
+                resultDiv.innerHTML = `<span class="api-error">✗ ERROR: ${error.message}</span>`;
                 console.error('Error:', error);
             }
+        }
+        
+        // Function to format JSON with some basic syntax highlighting
+        function formatJsonOutput(json) {
+            const formatted = JSON.stringify(json, null, 2);
+            return formatted.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, 
+                function (match) {
+                    let cls = 'number';
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) {
+                            cls = 'key';
+                            return `<span style="color: #7a3e9d;">${match}</span>`;
+                        } else {
+                            cls = 'string';
+                            return `<span style="color: #2e7d32;">${match}</span>`;
+                        }
+                    } else if (/true|false/.test(match)) {
+                        cls = 'boolean';
+                        return `<span style="color: #0277bd;">${match}</span>`;
+                    } else if (/null/.test(match)) {
+                        cls = 'null';
+                        return `<span style="color: #b71c1c;">${match}</span>`;
+                    } else {
+                        return `<span style="color: #0277bd;">${match}</span>`;
+                    }
+                }
+            );
         }
         
         // Move Robot Form
@@ -275,16 +453,11 @@
             const z = parseFloat(document.getElementById('placeZ').value);
             const arm = document.getElementById('pickupArm').value;
             
-            const params = {
+            callRobotApi('pickup_and_place', {
                 object_name: objectName,
-                target_location: [x, y, z]
-            };
-            
-            if (arm) {
-                params.arm = arm;
-            }
-            
-            callRobotApi('pickup_and_place', params);
+                target_location: [x, y, z],
+                arm: arm || null
+            });
         });
         
         // Robot Perceive Form
