@@ -258,3 +258,76 @@ def get_world_safely():
 ```
 
 This is important for avoiding interactive prompts that might occur during initialization.
+
+## Dependencies and Requirements
+
+The PyCRAM API relies on several Python packages to function correctly. Key dependencies include:
+
+### Core Dependencies
+- **FastAPI** (v0.115.11): Web framework for building the API endpoints
+- **Uvicorn** (v0.33.0): ASGI server for running the FastAPI application
+- **PyCRAM Bullet** (v3.2.8): Core PyCRAM simulation framework using Bullet physics
+- **NumPy** (v1.24.4): Numerical computing library for mathematical operations
+- **PyBullet**: 3D physics simulation (imported through PyCRAM Bullet)
+
+### Web Interface
+- **Flask** (v1.1.4): Used for serving the web interface
+- **Flask-Cors** (v3.0.10): Handles Cross-Origin Resource Sharing for the web interface
+
+### Robot Simulation
+- **eigenpy** (v3.10.3): Python bindings for Eigen (linear algebra)
+- **transforms3d** (v0.4.2): 3D transformations library
+- **PyOpenGL** (v3.1.0): Python bindings for OpenGL
+
+### ROS Integration
+- **rospy** (v1.17.0): Python client library for ROS
+- **tf** (v1.13.2): Transform library for ROS
+- **actionlib** (v1.14.0): ROS action library
+
+### Utils
+- **Pillow** (v7.0.0): Image processing library
+- **trimesh** (v4.6.3): Library for loading and manipulating triangular meshes
+- **owlready2** (v0.47): Library for manipulating OWL ontologies in Python
+
+For a complete list of dependencies with their versions, refer to the `requirements.txt` file in the project root.
+
+To install all required dependencies, use:
+```bash
+pip install -r requirements.txt
+```
+
+## Running the API Server
+
+To run the PyCRAM API server:
+
+```bash
+python api.py
+```
+
+This will:
+1. Initialize the PyCRAM environment
+2. Start the FastAPI server with Uvicorn
+3. Listen for incoming requests on all interfaces (0.0.0.0) on port 8001
+
+Alternatively, you can run the server using Uvicorn directly:
+
+```bash
+python -m uvicorn api:app --host 0.0.0.0 --port 8001
+```
+
+### Accessing the API
+
+Once the server is running, you can access:
+- API endpoints at `http://localhost:8001/`
+- API documentation at `http://localhost:8001/docs`
+- The web interface by opening `robot_control.html` in your browser
+
+### Running the Test Client
+
+To test the API using the provided test client:
+
+```bash
+python test_api.py
+```
+
+This will send a series of test requests to the API server and display the results.
