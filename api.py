@@ -33,13 +33,34 @@ world = None
 def init_environment():
     global env_obj, world
     # Import these here to prevent auto-execution of interactive code
-    from environment import create_environment, get_world
+    from environment import create_environment, get_world, get_environment_name
+    from robot_actions_api import spawn_objects
     
     print("Initializing environment for API mode...")
-    env_obj, world = create_environment()
+    env_obj, world = create_environment(spawn_default_objects=False)
     if world is None:
         print("Failed to initialize the world. Exiting...")
         return False
+    
+    # Check if the environment is a kitchen or user chose to initialize with objects
+    # Use the new get_environment_name function
+    env_name = get_environment_name(env_obj)
+    if env_name == 'kitchen':
+        # Spawn initial objects at specified locations
+        objects_to_spawn = [
+            {"object_choice": "spoon", "coordinates": [1.4, 1, 0.95], "color": "blue"},
+            {"object_choice": "cereal", "coordinates": [1.4, 0.8, 0.95], "color": "red"},
+            {"object_choice": "milk", "coordinates": [1.4, 0.6, 0.95], "color": "green"}
+        ]
+        
+        for obj in objects_to_spawn:
+            spawn_result = spawn_objects(
+                obj['object_choice'], 
+                obj['coordinates'], 
+                obj['color']
+            )
+            print(f"Spawned {obj['color']} {obj['object_choice']}: {spawn_result}")
+    
     print("Environment initialized successfully.")
     return True
 

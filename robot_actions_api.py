@@ -74,7 +74,7 @@ def pickup_and_place(object_name=None, target_location=None, arm=None):
             object_name = "cereal"  # Default object to pick up
             
         if target_location is None:
-            target_location = [1.0, 1.0, 0.8]  # Default placement location
+            target_location = [1.4, 1.0, 0.95]  # Default placement location
             
         # Convert arm string to enum
         arm_enum = None
@@ -96,6 +96,9 @@ def pickup_and_place(object_name=None, target_location=None, arm=None):
             robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
             
             print(f"API: Preparing to pick up {object_name}...")
+            # print the target location
+            print(f"API: Target location: {target_location}")
+            
             
             # Park arms and adjust torso for pickup
             ParkArmsAction([Arms.BOTH]).resolve().perform()
