@@ -5,8 +5,8 @@ import robo_cram
 
 def init_simulation():
     env_options = {
-        "1": robo_cram.Env.KITCHEN,
-        "2": robo_cram.Env.APARTMENT
+        1: robo_cram.Env.KITCHEN,
+        2: robo_cram.Env.APARTMENT
     }
 
     print(
@@ -16,9 +16,9 @@ def init_simulation():
         \r2) Apartment
         """
     )
-    choice = input("Enter your choice: ").strip()
+    choice = int(input("Enter your choice: ").strip())
     while choice not in env_options:
-        choice = input("Invalid choice, enter your choice: ").strip()
+        choice = int(input("Invalid choice, enter your choice: ").strip())
 
     robo_cram.init_simulation(env_options[choice])
 
@@ -29,19 +29,19 @@ def exit_simulation():
 
 def spawn_object():
     obj_types = {
-        "1": robo_cram.Obj.CEREAL,
-        "2": robo_cram.Obj.MILK,
-        "3": robo_cram.Obj.SPOON,
-        "4": robo_cram.Obj.BOWL
+        1: robo_cram.Obj.CEREAL,
+        2: robo_cram.Obj.MILK,
+        3: robo_cram.Obj.SPOON,
+        4: robo_cram.Obj.BOWL
     }
     colours = {
-        "1": robo_cram.Colour.RED,
-        "2": robo_cram.Colour.GREEN,
-        "3": robo_cram.Colour.BLUE,
-        "4": robo_cram.Colour.YELLOW,
-        "5": robo_cram.Colour.WHITE,
-        "6": robo_cram.Colour.BLACK,
-        "7": robo_cram.Colour.DEFAULT
+        1: robo_cram.Colour.RED,
+        2: robo_cram.Colour.GREEN,
+        3: robo_cram.Colour.BLUE,
+        4: robo_cram.Colour.YELLOW,
+        5: robo_cram.Colour.WHITE,
+        6: robo_cram.Colour.BLACK,
+        7: robo_cram.Colour.DEFAULT
     }
 
     print(
@@ -53,9 +53,9 @@ def spawn_object():
         \n4) Bowl
         """
     )
-    obj_type = input("Enter your choice: ").strip()
+    obj_type = int(input("Enter your choice: ").strip())
     while obj_type not in obj_types:
-        obj_type = input("Invalid choice, enter your choice: ").strip()
+        obj_type = int(input("Invalid choice, enter your choice: ").strip())
 
     coordinates_str = input("Enter the coordinates to spawn the object using the format x,y,z: ").strip()
     coordinates = coordinates_str.split(",")
@@ -82,9 +82,9 @@ def spawn_object():
         \n7) Default colour
         """
     )
-    colour = input("Enter your choice: ").strip()
+    colour = int(input("Enter your choice: ").strip())
     while colour not in colours:
-        colour = input("Invalid choice, enter your choice: ").strip()
+        colour = int(input("Invalid choice, enter your choice: ").strip())
     
     robo_cram.spawn_object(obj_types[obj_type], coordinates, colour)
 
@@ -108,14 +108,14 @@ def move_robot():
 
 def pickup_and_place():
     obj_types = {
-        "1": robo_cram.Obj.CEREAL,
-        "2": robo_cram.Obj.MILK,
-        "3": robo_cram.Obj.SPOON,
-        "4": robo_cram.Obj.BOWL
+        1: robo_cram.Obj.CEREAL,
+        2: robo_cram.Obj.MILK,
+        3: robo_cram.Obj.SPOON,
+        4: robo_cram.Obj.BOWL
     }
     arms = {
-        "1": Arms.RIGHT,
-        "2": Arms.LEFT
+        1: Arms.RIGHT,
+        2: Arms.LEFT
     }
 
     print(
@@ -127,9 +127,9 @@ def pickup_and_place():
         \n4) Bowl
         """
     )
-    obj = input("Enter your choice: ").strip()
+    obj = int(input("Enter your choice: ").strip())
     if obj not in obj_types:
-        obj = input("Invalid choice, enter your choice: ").strip()
+        obj = int(input("Invalid choice, enter your choice: ").strip())
 
     coordinates_str = input("Enter the coordinates to place the object at using the format x,y,z: ").strip()
     coordinates = coordinates_str.split(",")
@@ -151,9 +151,9 @@ def pickup_and_place():
         \n2) Left
         """
     )
-    arm = input("Enter your choice: ").strip()
+    arm = int(input("Enter your choice: ").strip())
     if arm not in arms:
-        arm = input("Invalid choice, enter your choice: ").strip()
+        arm = int(input("Invalid choice, enter your choice: ").strip())
 
     robo_cram.pickup_and_place(obj_types[obj], coordinates, arms[arm])
 
@@ -165,10 +165,10 @@ def robot_perceive():
 
 def look_for_object():
     obj_types = {
-        "1": robo_cram.Obj.CEREAL,
-        "2": robo_cram.Obj.MILK,
-        "3": robo_cram.Obj.SPOON,
-        "4": robo_cram.Obj.BOWL
+        1: robo_cram.Obj.CEREAL,
+        2: robo_cram.Obj.MILK,
+        3: robo_cram.Obj.SPOON,
+        4: robo_cram.Obj.BOWL
     }
 
     print(
@@ -180,9 +180,9 @@ def look_for_object():
         \n4) Bowl
         """
     )
-    obj = input("Enter your choice: ").strip()
+    obj = int(input("Enter your choice: ").strip())
     if obj not in obj_types:
-        obj = input("Invalid choice, enter your choice: ").strip()
+        obj = int(input("Invalid choice, enter your choice: ").strip())
 
     robo_cram.look_for_object(obj_types[obj])
 
@@ -193,10 +193,10 @@ def unpack_arms():
 
 def detect_object():
     obj_types = {
-        "1": robo_cram.Obj.CEREAL,
-        "2": robo_cram.Obj.MILK,
-        "3": robo_cram.Obj.SPOON,
-        "4": robo_cram.Obj.BOWL
+        1: robo_cram.Obj.CEREAL,
+        2: robo_cram.Obj.MILK,
+        3: robo_cram.Obj.SPOON,
+        4: robo_cram.Obj.BOWL
     }
 
     print(
@@ -208,23 +208,23 @@ def detect_object():
         \n4) Bowl
         """
     )
-    obj = input("Enter your choice: ").strip()
+    obj = int(input("Enter your choice: ").strip())
     if obj not in obj_types:
-        obj = input("Invalid choice, enter your choice: ").strip()
+        obj = int(input("Invalid choice, enter your choice: ").strip())
 
     robo_cram.detect_object(obj_types[obj])
 
 
 def transport_object():
     obj_types = {
-        "1": robo_cram.Obj.CEREAL,
-        "2": robo_cram.Obj.MILK,
-        "3": robo_cram.Obj.SPOON,
-        "4": robo_cram.Obj.BOWL
+        1: robo_cram.Obj.CEREAL,
+        2: robo_cram.Obj.MILK,
+        3: robo_cram.Obj.SPOON,
+        4: robo_cram.Obj.BOWL
     }
     arms = {
-        "1": Arms.RIGHT,
-        "2": Arms.LEFT
+        1: Arms.RIGHT,
+        2: Arms.LEFT
     }
 
     print(
@@ -236,9 +236,9 @@ def transport_object():
         \n4) Bowl
         """
     )
-    obj = input("Enter your choice: ").strip()
+    obj = int(input("Enter your choice: ").strip())
     if obj not in obj_types:
-        obj = input("Invalid choice, enter your choice: ").strip()
+        obj = int(input("Invalid choice, enter your choice: ").strip())
 
     coordinates_str = input("Enter the coordinates to transport the object to using the format x,y,z: ").strip()
     coordinates = coordinates_str.split(",")
@@ -260,16 +260,27 @@ def transport_object():
         \n2) Left
         """
     )
-    arm = input("Enter your choice: ").strip()
+    arm = int(input("Enter your choice: ").strip())
     if arm not in arms:
-        arm = input("Invalid choice, enter your choice: ").strip()
+        arm = int(input("Invalid choice, enter your choice: ").strip())
 
     robo_cram.transport_object(obj_types[obj], coordinates, arms[arm])
 
 
 def run():
-    print("--- Interactive RoboCRAM Demo ---")
+    choice_to_command = {
+        1: spawn_object,
+        2: move_robot,
+        3: pickup_and_place,
+        4: robot_perceive,
+        5: look_for_object,
+        6: unpack_arms,
+        7: detect_object,
+        8: transport_object,
+        9: exit_simulation,
+    }
 
+    print("--- Interactive RoboCRAM Demo ---")
     init_simulation()
 
     while True:
@@ -287,20 +298,8 @@ def run():
             \r9) Exit Simulation
             """
         )
-        choice = input("Enter your choice: ").strip()
 
-        choice_to_command = {
-            "1": spawn_object,
-            "2": move_robot,
-            "3": pickup_and_place,
-            "4": robot_perceive,
-            "5": look_for_object,
-            "6": unpack_arms,
-            "7": detect_object,
-            "8": transport_object,
-            "9": exit_simulation,
-        }
-
+        choice = int(input("Enter your choice: ").strip())
         if choice not in choice_to_command:
             print("Invalid choice. Please try again.")
             continue
