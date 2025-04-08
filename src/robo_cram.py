@@ -3,19 +3,16 @@ import time
 from enum import Enum
 from typing import AnyStr, Dict, Tuple
 
-from pycram.datastructures.enums import Arms, DetectionTechnique, Grasp, ObjectType, TorsoState, WorldMode
+from pycram.datastructures.dataclasses import Color
+from pycram.datastructures.enums import Arms, WorldMode
 from pycram.datastructures.pose import Pose
-from pycram.designators.action_designator import *
-from pycram.designators.location_designator import *
-from pycram.designators.motion_designator import *
-from pycram.designators.object_designator import *
-from pycrap.ontologies import Apartment, Bowl, Cereal, Kitchen, Milk, Spoon, Robot
+from pycram.designators.action_designator import NavigateActionDescription, ParkArmsActionDescription
+from pycram.designators.location_designator import SemanticCostmapLocation
+from pycram.designators.object_designator import BelieveObject
 from pycram.process_module import simulated_robot
 from pycram.worlds.bullet_world import BulletWorld
 from pycram.world_concepts.world_object import Object
-
-
-world = None
+from pycrap.ontologies import Apartment, Bowl, Cereal, Kitchen, Milk, Spoon, Robot
 
 
 class Env(Enum):
@@ -30,75 +27,106 @@ class Colour(Enum):
     RED, GREEN, BLUE, YELLOW, WHITE, BLACK, DEFAULT = range(7)
 
 
-def get_rgba(colour_string: AnyStr) -> Tuple[float, float, float, float]:
-    colour_string_to_rgba = {
-        "red": (1.0, 0.0, 0.0, 1.0),
-        "green": (0.0, 1.0, 0.0, 1.0),
-        "blue": (0.0, 0.0, 1.0, 1.0),
-        "yellow": (1.0, 1.0, 0.0, 1.0),
-        "white": (1.0, 1.0, 1.0, 1.0),
-        "black": (0.0, 0.0, 0.0, 1.0)
-    }
-    return colour_string_to_rgba.get(colour_string.lower(), (0.5, 0.0, 0.0, 1.0))
+class Area(Enum):
+    SINK = range(1)
+
+
+ROBOT_NAME = "pr2"
+COLOURS = {
+    Colour.RED: (1.0, 0.0, 0.0, 1.0),
+    Colour.GREEN: (0.0, 1.0, 0.0, 1.0),
+    Colour.BLUE: (0.0, 0.0, 1.0, 1.0),
+    Colour.YELLOW: (1.0, 1.0, 0.0, 1.0),
+    Colour.WHITE: (1.0, 1.0, 1.0, 1.0),
+    Colour.BLACK: (0.0, 0.0, 0.0, 1.0),
+    Colour.DEFAULT: (0.5, 0.0, 0.0, 1.0)
+}
+ENVIRONMENTS = {
+    Env.KITCHEN: ("kitchen", Kitchen, "kitchen.urdf"),
+    Env.APARTMENT: ("apartment", Apartment, "apartment.urdf")
+}
+OBJECTS = {
+    Obj.CEREAL: (Cereal, "breakfast_cereal.stl"),
+    Obj.MILK: (Milk, "milk.stl"),
+    Obj.SPOON: (Spoon, "spoon.stl"),
+    Obj.BOWL: (Bowl, "bowl.stl")
+}
+AREAS = {
+    Area.SINK: "sink"
+}
+world = None
+environment = None
 
 
 def init_simulation(env: Env = Env.KITCHEN) -> None:
-    global world
+    global world, environment
 
-    env_name, env_ontology, env_file = {
-        Env.KITCHEN: ("kitchen", Kitchen, "kitchen.urdf"),
-        Env.APARTMENT: ("apartment", Apartment, "apartment.urdf")
-    }[env]
-
+    environment = env
     world = BulletWorld(WorldMode.GUI)
-    Object(env_name, env_ontology, env_file)
-    Object("pr2", Robot, "pr2.urdf")
+    environment = Object(*ENVIRONMENTS[env])
+    robot = Object(ROBOT_NAME, Robot, "pr2.urdf")
+
+    if env == Env.KITCHEN:
+        environment.set_link_color("iai_fridge_door", [0.0, 0.0, 0.5])
+        environment.set_link_color("sink_area_sink", [0.75, 0.75, 0.75])
+        environment.set_link_color("sink_area_dish_washer_door", [0.0, 0.25, 0.0])
+        environment.set_link_color("oven_area_oven_panel", [0.0, 0.0, 0.5])
+        environment.set_link_color("oven_area_oven_door", [0.0, 0.25, 0.0])
+
+    robot.set_link_color("base_link", [0.0, 0.0, 0.0])
+    robot.set_link_color("head_tilt_link", [0.0, 0.0, 0.0])
+    robot.set_link_color("r_forearm_link", [0.0, 0.0, 0.0])
+    robot.set_link_color("l_forearm_link", [0.0, 0.0, 0.0])
+    robot.set_link_color("torso_lift_link", [0, 0.2, 0.5])
+    robot.set_link_color("r_gripper_palm_link", [0, 0.2, 0.5])
+    robot.set_link_color("l_gripper_palm_link", [0, 0.2, 0.5])
 
 
-def exit_simulation() -> None:
-    if world is not None:
-        world.exit()
+def robot_pack_arms() -> None:
+    with simulated_robot:
+        ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
 
 
 def spawn_object(
-        obj: Obj = Obj.CEREAL, coordinates: Tuple[float, float, float] = (1.4, 1.0, 0.95), colour: Colour = Colour.DEFAULT
+        obj: Obj = Obj.CEREAL, obj_name: AnyStr = "object", coordinates: Tuple[float, float, float] = (1.4, 1.0, 0.875),
+        colour: Colour = Colour.DEFAULT
     ) -> Dict:
-    position = [float(i) for i in coordinates]
-    if len(position) != 3:
-        return {"status": "error", "message": "Coordinates must have exactly 3 values (x,y,z)"}
+    try:
+        position = [float(i) for i in coordinates]
+    except ValueError:
+        return {"status": "error", "message": "Coordinates must have exactly 3 real numbers (x,y,z)"}
 
-    obj_name, obj_ontology, obj_file = {
-        Obj.CEREAL: ("cereal", Cereal, "breakfast_cereal.stl"),
-        Obj.MILK: ("milk", Milk, "milk.stl"),
-        Obj.SPOON: ("spoon", Spoon, "spoon.stl"),
-        Obj.BOWL: ("bowl", Bowl, "bowl.stl")
-    }[obj]
-    obj_colour = get_rgba(colour) if colour else get_rgba("get_default_colour")
-    obj = Object(obj_name, obj_ontology, obj_file, pose=Pose(position), colour=obj_colour)
+    if len(position) != 3:
+        return {"status": "error", "message": "Coordinates must have exactly 3 real numbers (x,y,z)"}
+
+    obj_type, obj_file = OBJECTS[obj]
+    Object(obj_name, obj_type, obj_file, pose=Pose(position), color=Color.from_list(COLOURS[colour]))
 
     return {
         "status": "success",
         "message": f"Object '{obj_name}' created successfully",
         "object": {
             "name": obj_name,
-            "type": str(obj_ontology),
+            "type": str(obj_type).split(".")[1],
             "file": obj_file,
             "position": position,
-            "colour": colour if colour else "default"
+            "colour": COLOURS[colour]
         }
     }
 
 
 def move_robot(coordinates: Tuple[float, float, float] = (0, 0, 0)) -> Dict:
-    position = [float(i) for i in coordinates]
-    if len(position) != 3:
-        return {"status": "error", "message": "Coordinates must have exactly 3 values (x,y,z)"}
+    try:
+        position = [float(i) for i in coordinates]
+    except ValueError:
+        return {"status": "error", "message": "Coordinates must have exactly 3 real numbers (x,y,z)"}
 
-    nav_pose = Pose(position)
+    if len(position) != 3:
+        return {"status": "error", "message": "Coordinates must have exactly 3 real numbers (x,y,z)"}
 
     with simulated_robot:
-        ObjectDesignatorDescription(names=["pr2"]).resolve()
-        NavigateAction(target_locations=[nav_pose]).resolve().perform()
+        ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
+        NavigateActionDescription(target_location=[Pose(position)]).resolve().perform()
 
     return {
         "status": "success", 
@@ -107,126 +135,48 @@ def move_robot(coordinates: Tuple[float, float, float] = (0, 0, 0)) -> Dict:
     }
 
 
-def pickup_and_place(obj: Obj, target_coordinates: Tuple[float, float, float], arm: Arms) -> Dict:
-    position = [float(i) for i in target_coordinates]
-    if len(position) != 3:
-        return {"status": "error", "message": "Coordinates must have exactly 3 values (x,y,z)"}
-
-    obj_name = {
-        Obj.CEREAL: "cereal",
-        Obj.MILK: "milk",
-        Obj.SPOON: "spoon",
-        Obj.BOWL: "bowl"
-    }[obj]
+def is_object_type_in_environment(obj: Obj) -> Dict:
+    obj_type = OBJECTS[obj][0]
 
     with simulated_robot:
-        object_desig = BelieveObject(names=[obj_name])
-        robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
-
-        ParkArmsAction([Arms.BOTH]).resolve().perform()
-        MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
-
         try:
-            try:
-                object_resolved = object_desig.resolve()
-            except StopIteration:
-                variants = [
-                    object_name.lower(),
-                    object_name.upper(),
-                    object_name.capitalize()
-                ]
-
-                object_resolved = None
-                for variant in variants:
-                    if variant != object_name:
-                        try:
-                            variant_desig = BelieveObject(names=[variant])
-                            object_resolved = variant_desig.resolve()
-                            if object_resolved:
-                                print(f"API: Found object with name '{variant}'")
-                                object_desig = variant_desig
-                                object_name = variant
-                                break
-                        except StopIteration:
-                            continue
-
-                if not object_resolved:
-                    return {"status": "error", "message": f"Object '{object_name}' not found in the world. You may need to spawn it first."}
-
-            pickup_pose = CostmapLocation(target=object_resolved, reachable_for=robot_desig).resolve()
-
+            objects = BelieveObject(types=[obj_type])
         except StopIteration:
-            return {"status": "error", "message": f"Object '{object_name}' not found in the world. You may need to spawn it first."}
+            objects = []
 
-        if not pickup_pose.reachable_arms:
-            return {"status": "error", "message": f"No reachable arms for object {object_name}"}
+    objs_in_environment = [{"name": i.name, "type": str(obj_type).split(".")[1]} for i in objects]
 
-        if arm not in pickup_pose.reachable_arms:
-            return {"status": "error", "message": f"Selected arm ({'right' if arm == Arms.RIGHT else 'left'}) can't reach object, use the other arm"}
+    return {
+        "status": "success" if len(objs_in_environment) > 0 else "error",
+        "message": f"{len(objs_in_environment)} object{'s' if len(objs_in_environment) != 1 else ''} of type "
+            f"'{str(obj_type).split('.')[1]}' {'are' if len(objs_in_environment) != 1 else 'is'} in the environment",
+        "objects": objs_in_environment
+    }
 
-        NavigateAction(target_locations=[pickup_pose.pose]).resolve().perform()
-        PickUpAction(object_designator_description=object_desig, arms=[arm], grasps=[Grasp.FRONT]).resolve().perform()
-        ParkArmsAction([Arms.BOTH]).resolve().perform()
 
-        time.sleep(0.5)  # Allow simulation state to update
+def is_object_in_environment(obj_name: AnyStr) -> Dict:
+    with simulated_robot:
+        try:
+            object = BelieveObject(names=[obj_name]).resolve()
+        except StopIteration:
+            object = None
 
-        destination_pose = Pose(position)
-        place_stand = None
-        resolution_timeout = 5  # seconds
-        resolution_complete = False
-        resolution_error = None
-
-        def resolve_placement():
-            nonlocal place_stand, resolution_complete, resolution_error
-            try:
-                place_stand = CostmapLocation(destination_pose, reachable_for=robot_desig, reachable_arm=arm).resolve()
-                resolution_complete = True
-            except Exception as e:
-                resolution_error = str(e)
-                resolution_complete = True
-
-        resolution_thread = threading.Thread(target=resolve_placement)
-        resolution_thread.daemon = True
-        resolution_thread.start()
-
-        start_time = time.time()
-        while not resolution_complete and time.time() - start_time < resolution_timeout:
-            time.sleep(0.1)
-
-        if not resolution_complete:
-            place_stand = None
-
-        if resolution_error:
-            place_stand = None
-
-        if place_stand is None or not hasattr(place_stand, 'pose'):
-            PlaceAction(object_designator_description=object_desig, target_locations=[destination_pose], arms=[arm]).resolve().perform()
-            ParkArmsAction([Arms.BOTH]).resolve().perform()
-
-            return {
-                "status": "success",
-                "message": f"Successfully picked up {object_name} and placed at {position} (using fallback)",
-                "object": object_name,
-                "target_location": position,
-                "arm_used": str(arm)
-            }
-
-        NavigateAction(target_locations=[place_stand.pose]).resolve().perform()
-        PlaceAction(object_designator_description=object_desig, target_locations=[destination_pose], arms=[arm]).resolve().perform()
-        ParkArmsAction([Arms.BOTH]).resolve().perform()
-
+    if object is None:
         return {
-            "status": "success",
-            "message": f"Successfully picked up {object_name} and placed at {position}",
-            "object": object_name,
-            "target_location": position,
-            "arm_used": str(arm)
+            "status": "error",
+            "message": f"Object '{obj_name}' is not in the environment"
         }
 
+    return {
+        "status": "success",
+        "message": f"Object '{obj_name}' is in the environment"
+    }
 
-def robot_perceive(perception_area: AnyStr) -> Dict:
+
+def is_object_type_in_area(area: Area, obj: Obj) -> Dict:
     with simulated_robot:
-        results = PerceiveAction(area=perception_area).resolve().perform()
+        env = BelieveObject(names=[ENVIRONMENTS[environment][0]]).resolve()
+        location_description = SemanticCostmapLocation(link_name=AREAS[area], part_of=env)
 
     perceived_objects = []
 
@@ -243,93 +193,26 @@ def robot_perceive(perception_area: AnyStr) -> Dict:
     }
 
 
-def look_for_object(obj: Obj) -> Dict:
-    obj_name = {
-        Obj.CEREAL: "cereal",
-        Obj.MILK: "milk",
-        Obj.SPOON: "spoon",
-        Obj.BOWL: "bowl"
-    }[obj]
-
+def is_object_in_area(area: Area, obj_name: AnyStr) -> Dict:
     with simulated_robot:
-        obj_desig = ObjectDesignatorDescription(names=[obj_name]).resolve()
-        result = LookForAction(object=obj_desig).resolve().perform()
+        env = BelieveObject(names=[ENVIRONMENTS[environment][0]]).resolve()
+        location_description = SemanticCostmapLocation(link_name=AREAS[area], part_of=env)
 
-    if not result:
-        return {
-            "status": "error",
-            "message": f"Could not find {obj_name}"
-        }
+    perceived_objects = []
 
-    position = result.pose.position if hasattr(result, 'pose') else "unknown"
+    for i in results:
+        perceived_objects.append({
+            "name": i.name if hasattr(i, "name") else "unknown",
+            "type": str(type(i))
+        })
 
     return {
         "status": "success",
-        "message": f"Found {obj_name}",
-        "object": obj_name,
-        "position": str(position)
+        "message": f"Robot perceived {len(perceived_objects)} objects in {perception_area}",
+        "perceived_objects": perceived_objects
     }
 
 
-def unpack_arms() -> Dict:
-    with simulated_robot:
-        UnpackAction().resolve().perform()
-
-    return {
-        "status": "success",
-        "message": "Robot arms unpacked successfully"
-    }
-
-
-def detect_object(obj: Obj) -> Dict:
-    obj_name = {
-        Obj.CEREAL: "cereal",
-        Obj.MILK: "milk",
-        Obj.SPOON: "spoon",
-        Obj.BOWL: "bowl"
-    }[obj]
-
-    with simulated_robot:
-        believe_desig = BelieveObject(types=[obj_name])
-        detected = DetectAction(technique=DetectionTechnique.TYPES, object_designator_description=believe_desig).resolve().perform()
-
-    detected_objects = []
-
-    if detected:
-        for i in detected:
-            detected_objects.append({
-                "name": i.name if hasattr(i, "name") else "unknown",
-                "type": str(type(i))
-            })
-
-    return {
-        "status": "success",
-        "message": f"Detected {len(detected_objects)} objects of type {object_type}",
-        "detected_objects": detected_objects
-    }
-
-
-def transport_object(obj: Obj, target_coordinates: Tuple[float, float, float], arm: Arms) -> Dict:
-    position = [float(i) for i in target_coordinates]
-    if len(position) != 3:
-        return {"status": "error", "message": "Coordinates must have exactly 3 values (x,y,z)"}
-
-    obj_name = {
-        Obj.CEREAL: "cereal",
-        Obj.MILK: "milk",
-        Obj.SPOON: "spoon",
-        Obj.BOWL: "bowl"
-    }[obj]
-
-    with simulated_robot:
-        object_desig = BelieveObject(names=[obj_name])
-        destination_position = Pose(position)
-        TransportAction(object_desig, [destination_position], [arm]).resolve().perform()
-
-    return {
-        "status": "success",
-        "message": f"Successfully transported {obj_name} to {position}",
-        "object": obj_name,
-        "target_location": position,
-        "arm_used": str(arm)
-    }
+def exit_simulation() -> None:
+    if world is not None:
+        world.exit()
