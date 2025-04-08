@@ -54,6 +54,12 @@ OBJECTS = {
 AREAS = {
     Area.SINK: "sink"
 }
+BLACK_COLOUR = Color(0.0, 0.0, 0.0, 1.0)
+GREEN_COLOUR = Color(0.0, 0.25, 0.0, 1.0)
+BLUE_COLOUR = Color(0.0, 0.0, 0.5, 1.0)
+YELLOW_COLOUR = Color(0.5, 0.5, 0.0, 1.0)
+SILVER_COLOUR = Color(0.75, 0.75, 0.75, 1.0)
+WOOD_COLOUR = Color(0.8, 0.7, 0.5, 1.0)
 world = None
 environment = None
 
@@ -63,23 +69,77 @@ def init_simulation(env: Env = Env.KITCHEN) -> None:
 
     environment = env
     world = BulletWorld(WorldMode.GUI)
-    environment = Object(*ENVIRONMENTS[env])
-    robot = Object(ROBOT_NAME, Robot, "pr2.urdf")
+    env_obj = Object(*ENVIRONMENTS[env])
+    robot_obj = Object(ROBOT_NAME, Robot, "pr2.urdf")
 
     if env == Env.KITCHEN:
-        environment.set_link_color("iai_fridge_door", [0.0, 0.0, 0.5])
-        environment.set_link_color("sink_area_sink", [0.75, 0.75, 0.75])
-        environment.set_link_color("sink_area_dish_washer_door", [0.0, 0.25, 0.0])
-        environment.set_link_color("oven_area_oven_panel", [0.0, 0.0, 0.5])
-        environment.set_link_color("oven_area_oven_door", [0.0, 0.25, 0.0])
+        env_obj.set_color({
+            "drawer_oven_right_front_link": WOOD_COLOUR,
 
-    robot.set_link_color("base_link", [0.0, 0.0, 0.0])
-    robot.set_link_color("head_tilt_link", [0.0, 0.0, 0.0])
-    robot.set_link_color("r_forearm_link", [0.0, 0.0, 0.0])
-    robot.set_link_color("l_forearm_link", [0.0, 0.0, 0.0])
-    robot.set_link_color("torso_lift_link", [0, 0.2, 0.5])
-    robot.set_link_color("r_gripper_palm_link", [0, 0.2, 0.5])
-    robot.set_link_color("l_gripper_palm_link", [0, 0.2, 0.5])
+            "fridge_area": SILVER_COLOUR,
+            "iai_fridge_door": GREEN_COLOUR,
+            "iai_fridge_door_handle": SILVER_COLOUR,
+            "fridge_area_lower_drawer_main": WOOD_COLOUR,
+            "fridge_area_lower_drawer_handle": SILVER_COLOUR,
+
+            "kitchen_island": WOOD_COLOUR,
+            "kitchen_island_right_upper_drawer_main": WOOD_COLOUR,
+            "kitchen_island_right_upper_drawer_handle": SILVER_COLOUR,
+            "kitchen_island_right_lower_drawer_main": WOOD_COLOUR,
+            "kitchen_island_right_lower_drawer_handle": SILVER_COLOUR,
+            "kitchen_island_middle_upper_drawer_main": WOOD_COLOUR,
+            "kitchen_island_middle_upper_drawer_handle": SILVER_COLOUR,
+            "kitchen_island_middle_lower_drawer_main": WOOD_COLOUR,
+            "kitchen_island_middle_lower_drawer_handle": SILVER_COLOUR,
+            "kitchen_island_left_upper_drawer_main": WOOD_COLOUR,
+            "kitchen_island_left_upper_drawer_handle": SILVER_COLOUR,
+            "kitchen_island_left_lower_drawer_main": WOOD_COLOUR,
+            "kitchen_island_left_lower_drawer_handle": SILVER_COLOUR,
+
+            "oven_area_area": SILVER_COLOUR,
+            "oven_area_oven_panel": BLUE_COLOUR,
+            "oven_area_oven_door": GREEN_COLOUR,
+            "oven_area_oven_door_handle": SILVER_COLOUR,
+            "oven_area_area_right_drawer_handle": SILVER_COLOUR,
+            "oven_area_area_left_drawer_main": WOOD_COLOUR,
+            "oven_area_area_left_drawer_handle": SILVER_COLOUR,
+            "oven_area_area_middle_lower_drawer_main": GREEN_COLOUR,
+            "oven_area_area_middle_lower_drawer_handle": SILVER_COLOUR,
+            "oven_area_area_middle_upper_drawer_main": GREEN_COLOUR,
+            "oven_area_area_middle_upper_drawer_handle": SILVER_COLOUR,
+            "oven_area_oven_knob_oven": SILVER_COLOUR,
+            "oven_area_oven_knob_stove_1": SILVER_COLOUR,
+            "oven_area_oven_knob_stove_2": SILVER_COLOUR,
+            "oven_area_oven_knob_stove_3": SILVER_COLOUR,
+            "oven_area_oven_knob_stove_4": SILVER_COLOUR,
+
+            "sink_area": WOOD_COLOUR,
+            "sink_area_surface": SILVER_COLOUR,
+            "sink_area_sink": SILVER_COLOUR,
+            "sink_area_dish_washer_door": YELLOW_COLOUR,
+            "sink_area_dish_washer_door_handle": SILVER_COLOUR,
+            "sink_area_left_upper_drawer_main": YELLOW_COLOUR,
+            "sink_area_left_upper_drawer_handle": SILVER_COLOUR,
+            "sink_area_left_middle_drawer_main": YELLOW_COLOUR,
+            "sink_area_left_middle_drawer_handle": SILVER_COLOUR,
+            "sink_area_left_bottom_drawer_main": YELLOW_COLOUR,
+            "sink_area_left_bottom_drawer_handle": SILVER_COLOUR,
+            "sink_area_trash_drawer_main": YELLOW_COLOUR,
+            "sink_area_trash_drawer_handle": SILVER_COLOUR,
+            "sink_area_right_panel": SILVER_COLOUR,
+
+            "table_area_main": WOOD_COLOUR
+        })
+
+    robot_obj.set_color({
+        "base_link": BLACK_COLOUR,
+        "head_tilt_link": BLACK_COLOUR,
+        "r_forearm_link": BLACK_COLOUR,
+        "l_forearm_link": BLACK_COLOUR,
+        "torso_lift_link": GREEN_COLOUR,
+        "r_gripper_palm_link": GREEN_COLOUR,
+        "l_gripper_palm_link": GREEN_COLOUR,
+    })
 
 
 def robot_pack_arms() -> None:
@@ -211,6 +271,10 @@ def is_object_in_area(area: Area, obj_name: AnyStr) -> Dict:
         "message": f"Robot perceived {len(perceived_objects)} objects in {perception_area}",
         "perceived_objects": perceived_objects
     }
+
+
+def pick_and_place():
+    pass
 
 
 def exit_simulation() -> None:

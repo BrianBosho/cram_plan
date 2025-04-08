@@ -157,6 +157,10 @@ def is_object_in_area():
     print(f"{result['status'].upper()}: {result['message']}")
 
 
+def pick_and_place():
+    robo_cram.pick_and_place()
+
+
 def exit_simulation():
     robo_cram.exit_simulation()
 
@@ -170,7 +174,8 @@ def run():
         5: is_object_in_environment,
         6: is_object_type_in_area,
         7: is_object_in_area,
-        8: exit_simulation,
+        8: pick_and_place,
+        9: exit_simulation,
     }
     print("--- RoboCRAM Interactive ---")
     init_simulation()
@@ -186,7 +191,8 @@ def run():
             \r5) Find if an object with some name is in the environment
             \r6) Find if an object of some type is in some area
             \r7) Find if an object with some name is in some area
-            \r8) Exit simulation
+            \r8) Pick an object and place it elsewhere
+            \r9) Exit simulation
             """
         )
 
@@ -197,7 +203,7 @@ def run():
 
         MENU[int(choice)]()
 
-        if choice == 9:
+        if int(choice) == 9:
             break
 
 
