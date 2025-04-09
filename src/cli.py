@@ -1,5 +1,3 @@
-from pycram.datastructures.enums import Arms
-
 import robo_cram
 
 
@@ -22,6 +20,11 @@ COLOURS = {
     6: robo_cram.Colour.BLACK,
     7: robo_cram.Colour.DEFAULT
 }
+LOCATIONS = {
+    1: robo_cram.Location.KITCHEN_ISLAND,
+    2: robo_cram.Location.SINK_AREA,
+    3: robo_cram.Location.TABLE
+}
 
 
 def init_simulation():
@@ -36,11 +39,29 @@ def init_simulation():
     while len(choice) == 0 or int(choice) not in ENV_OPTIONS:
         choice = input("Invalid choice, enter your choice: ").strip()
 
-    robo_cram.init_simulation(ENV_OPTIONS[int(choice)])
+    response = robo_cram.init_simulation(ENV_OPTIONS[int(choice)])
+    print(f"{response['status'].upper()}: {response['message']}")
 
 
 def robot_pack_arms():
-    robo_cram.robot_pack_arms()
+    response = robo_cram.robot_pack_arms()
+    print(f"{response['status'].upper()}: {response['message']}")
+
+
+def move_torso():
+    print(
+        """
+        \nSet the torso high?
+        \n1) True
+        \n2) False
+        """
+    )
+    high = input("Enter your choice: ").strip()
+    if len(high) == 0 or int(high) not in [1, 2]:
+        high = input("Invalid choice, enter your choice: ").strip()
+
+    response = robo_cram.move_torso(int(high) == 1)
+    print(f"{response['status'].upper()}: {response['message']}")
 
 
 def spawn_object():
@@ -89,9 +110,9 @@ def spawn_object():
     colour = input("Enter your choice: ").strip()
     while len(colour) == 0 or int(colour) not in COLOURS:
         colour = input("Invalid choice, enter your choice: ").strip()
-    
-    result = robo_cram.spawn_object(OBJ_TYPES[int(obj_type)], obj_name, coordinates, COLOURS[int(colour)])
-    print(f"{result['status'].upper()}: {result['message']}")
+
+    response = robo_cram.spawn_object(OBJ_TYPES[int(obj_type)], obj_name, coordinates, COLOURS[int(colour)])
+    print(f"{response['status'].upper()}: {response['message']}")
 
 
 def move_robot():
@@ -108,14 +129,14 @@ def move_robot():
         except ValueError:
             coordinates = []
 
-    result = robo_cram.move_robot(coordinates)
-    print(f"{result['status'].upper()}: {result['message']}")
+    response = robo_cram.move_robot(coordinates)
+    print(f"{response['status'].upper()}: {response['message']}")
 
 
 def is_object_type_in_environment():
     print(
         """
-        \nSelect an object type to detect:
+        \nSelect an object type to search for:
         \n1) Cereal
         \n2) Milk
         \n3) Spoon
@@ -126,57 +147,141 @@ def is_object_type_in_environment():
     if len(obj_type) == 0 or int(obj_type) not in OBJ_TYPES:
         obj_type = input("Invalid choice, enter your choice: ").strip()
 
-    result = robo_cram.is_object_type_in_environment(OBJ_TYPES[int(obj_type)])
-    print(f"{result['status'].upper()}: {result['message']}")
+    response = robo_cram.is_object_type_in_environment(OBJ_TYPES[int(obj_type)])
+    print(f"{response['status'].upper()}: {response['message']}")
 
 
 def is_object_in_environment():
-    obj_name = input("Enter the name of the object: ").strip()
+    obj_name = input("Enter the name of the object to search for: ").strip()
     while len(obj_name) == 0:
         obj_name = input("You must enter a name: ").strip()
 
-    result = robo_cram.is_object_in_environment(obj_name)
-    print(f"{result['status'].upper()}: {result['message']}")
+    response = robo_cram.is_object_in_environment(obj_name)
+    print(f"{response['status'].upper()}: {response['message']}")
 
 
-def is_object_type_in_area():
-    perception_area = input("Where do you want to search for objects: ").strip()
-    while len(perception_area) == 0:
-        perception_area = input("You must enter an area to search for objects: ").strip()
+def is_object_type_in_location():
+    print(
+        """
+        \nSelect an object type to search for:
+        \n1) Cereal
+        \n2) Milk
+        \n3) Spoon
+        \n4) Bowl
+        """
+    )
+    obj_type = input("Enter your choice: ").strip()
+    if len(obj_type) == 0 or int(obj_type) not in OBJ_TYPES:
+        obj_type = input("Invalid choice, enter your choice: ").strip()
 
-    result = robo_cram.get_objects_in_an_area(perception_area)
-    print(f"{result['status'].upper()}: {result['message']}")
+    print(
+        """
+        \nSelect a location to search for the object in:
+        \n1) Kitchen island
+        \n2) Sink area
+        \n3) Table
+        """
+    )
+    perception_location = input("Enter your choice: ").strip()
+    if len(perception_location) == 0 or int(perception_location) not in LOCATIONS:
+        perception_location = input("Invalid choice, enter your choice: ").strip()
+
+    response = robo_cram.is_object_type_in_location(LOCATIONS[int(perception_location)], OBJ_TYPES[int(obj_type)])
+    print(f"{response['status'].upper()}: {response['message']}")
 
 
-def is_object_in_area():
-    perception_area = input("Where do you want to search for objects: ").strip()
-    while len(perception_area) == 0:
-        perception_area = input("You must enter an area to search for objects: ").strip()
+def is_object_in_location():
+    obj_name = input("Enter the name of the object to search for: ").strip()
+    while len(obj_name) == 0:
+        obj_name = input("You must enter a name: ").strip()
 
-    result = robo_cram.get_objects_in_an_area(perception_area)
-    print(f"{result['status'].upper()}: {result['message']}")
+    print(
+        """
+        \nSelect a location to search for the object in:
+        \n1) Kitchen island
+        \n2) Sink area
+        \n3) Table
+        """
+    )
+    perception_location = input("Enter your choice: ").strip()
+    if len(perception_location) == 0 or int(perception_location) not in LOCATIONS:
+        perception_location = input("Invalid choice, enter your choice: ").strip()
+
+    response = robo_cram.is_object_in_location(LOCATIONS[int(perception_location)], obj_name)
+    print(f"{response['status'].upper()}: {response['message']}")
+
+
+def is_object_visible_to_robot():
+    obj_name = input("Enter the name of the object to check: ").strip()
+    while len(obj_name) == 0:
+        obj_name = input("You must enter a name: ").strip()
+
+    response = robo_cram.is_object_visible_to_robot(obj_name)
+    print(f"{response['status'].upper()}: {response['message']}")
+
+
+def is_object_reachable_by_robot():
+    obj_name = input("Enter the name of the object to check: ").strip()
+    while len(obj_name) == 0:
+        obj_name = input("You must enter a name: ").strip()
+
+    response = robo_cram.is_object_reachable_by_robot(obj_name)
+    print(f"{response['status'].upper()}: {response['message']}")
+
+
+def look_at_object():
+    obj_name = input("Enter the name of the object to look at: ").strip()
+    while len(obj_name) == 0:
+        obj_name = input("You must enter a name: ").strip()
+
+    response = robo_cram.look_at_object(obj_name)
+    print(f"{response['status'].upper()}: {response['message']}")
 
 
 def pick_and_place():
-    robo_cram.pick_and_place()
+    obj_name = input("Enter the name of the object to pick: ").strip()
+    while len(obj_name) == 0:
+        obj_name = input("You must enter a name: ").strip()
+
+    print(
+        """
+        \nSelect a location to place the object:
+        \n1) Kitchen island
+        \n2) Sink area
+        \n3) Table
+        """
+    )
+    destination_location = input("Enter your choice: ").strip()
+    if len(destination_location) == 0 or int(destination_location) not in LOCATIONS:
+        destination_location = input("Invalid choice, enter your choice: ").strip()
+
+    response = robo_cram.pick_and_place(obj_name, LOCATIONS[int(destination_location)])
+    print(f"{response['status'].upper()}: {response['message']}")
 
 
 def exit_simulation():
-    robo_cram.exit_simulation()
+    response = robo_cram.exit_simulation()
+    print(f"{response['status'].upper()}: {response['message']}")
 
 
 def run():
     MENU = {
         1: robot_pack_arms,
-        2: spawn_object,
-        3: move_robot,
-        4: is_object_type_in_environment,
-        5: is_object_in_environment,
-        6: is_object_type_in_area,
-        7: is_object_in_area,
-        8: pick_and_place,
-        9: exit_simulation,
+        2: move_torso,
+        3: spawn_object,
+        4: move_robot,
+        5: is_object_type_in_environment,
+        6: is_object_in_environment,
+        7: is_object_type_in_location,
+        8: is_object_in_location,
+        9: is_object_visible_to_robot,
+        10: is_object_reachable_by_robot,
+        11: look_at_object,
+        12: pick_and_place,
+        13: exit_simulation,
     }
+    exit_choice = len(MENU)
+
     print("--- RoboCRAM Interactive ---")
     init_simulation()
 
@@ -185,14 +290,18 @@ def run():
             """
             \r--- Main Menu ---
             \r1) Pack robot arms
-            \r2) Spawn objects in the environment
-            \r3) Move robot
-            \r4) Find if an object of some type is in the environment
-            \r5) Find if an object with some name is in the environment
-            \r6) Find if an object of some type is in some area
-            \r7) Find if an object with some name is in some area
-            \r8) Pick an object and place it elsewhere
-            \r9) Exit simulation
+            \r2) Move torso
+            \r3) Spawn objects in the environment
+            \r4) Move robot
+            \r5) Find if an object of some type is in the environment
+            \r6) Find if an object with some name is in the environment
+            \r7) Find if an object of some type is in some location
+            \r8) Find if an object with some name is in some location
+            \r9) Find if an object is visible to the robot
+            \r10) Find if an object is reachable by the robot
+            \r11) Look at an object
+            \r12) Pick an object and place it elsewhere
+            \r13) Exit simulation
             """
         )
 
@@ -203,7 +312,7 @@ def run():
 
         MENU[int(choice)]()
 
-        if int(choice) == 9:
+        if int(choice) == exit_choice:
             break
 
 
