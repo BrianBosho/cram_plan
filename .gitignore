@@ -10,4 +10,4 @@ venv/
 pycram/
 
 # Ignore reference docs folder
-reference docs/
+reference_docs/
