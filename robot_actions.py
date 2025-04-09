@@ -138,21 +138,60 @@ def robot_perceive():
     """
     try:
         print("\n--- Robot Perception ---")
+        # Get the world from the imported function
+        world = get_world()
+        
         if world:
-            visible_objects = world.get_visible_objects() if hasattr(world, "get_visible_objects") else []
-            if visible_objects:
-                print("The robot sees the following objects:")
-                for obj in visible_objects:
-                    print(f" - {obj.name}")
-            else:
-                print("No objects detected by the robot.")
-                all_objects = world.objects if hasattr(world, "objects") else []
-                if all_objects:
-                    print("All objects in the world:")
-                    for obj in all_objects:
-                        print(f" - {obj.name}")
-                else:
-                    print("World has no objects.")
+            # First try to detect objects using proper perception
+            with simulated_robot:
+                detected_objects = []
+                
+                # Try to find a good spot to look at
+                try:
+                    # First check if there are any objects in the world
+                    has_objects = False
+                    if hasattr(world, "objects") and world.objects:
+                        for obj in world.objects:
+                            if obj.name != "pr2" and obj.name not in ["kitchen", "apartment"]:
+                                has_objects = True
+                                break
+                    
+                    if has_objects:
+                        # Try to detect common objects
+                        common_types = ["Milk", "Cereal", "Spoon", "Bowl"]
+                        for obj_type in common_types:
+                            try:
+                                # Using the technique from demo.txt
+                                believe_desig = BelieveObject(types=[obj_type])
+                                objects_detected = DetectAction(
+                                    technique=DetectionTechnique.TYPES,
+                                    object_designator_description=believe_desig
+                                ).resolve().perform()
+                                
+                                if objects_detected:
+                                    for obj in objects_detected:
+                                        detected_objects.append(obj)
+                                        print(f" - {obj.name} ({obj_type})")
+                            except Exception as e:
+                                # Continue with next type
+                                continue
+                        
+                        if detected_objects:
+                            print(f"Detected {len(detected_objects)} objects.")
+                        else:
+                            print("No objects detected using perception.")
+                    else:
+                        print("No objects to perceive in the world.")
+                except Exception as e:
+                    print(f"Error during perception: {e}")
+                
+                # Fallback to listing objects directly
+                if not detected_objects and hasattr(world, "objects"):
+                    print("Listing world objects:")
+                    for obj in world.objects:
+                        if obj.name != "pr2" and obj.name not in ["kitchen", "apartment"]:
+                            print(f" - {obj.name}")
+            
         else:
             print("World is not initialized.")
     except Exception as e:

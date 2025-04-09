@@ -149,69 +149,29 @@ python test_api.py
 
 ## API Reference
 
-### Endpoint: `/execute`
+This section details all available commands in the PyCRAM Robot API.
 
-This is the main endpoint for all robot commands. It accepts POST requests with JSON payloads.
+#### Available Commands
 
-General request format:
-```json
-{
-  "command": "command_name",
-  "params": {
-    "param1": "value1",
-    "param2": "value2"
-  }
-}
-```
-
-General response format:
-```json
-{
-  "status": "success|error",
-  "message": "Human-readable message",
-  "additional_data": { ... }
-}
-```
-
-### API Examples for All Commands
-
-#### 1. Move Robot
-
-Moves the robot to specific coordinates.
-
-```bash
-curl -X POST http://localhost:8001/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command": "move_robot", "params": {"coordinates": [1.0, 1.0, 0.0]}}'
-```
-
-Postman:
-- Method: POST
-- URL: http://localhost:8001/execute
-- Body (raw JSON):
+1. **move_robot**
+   - Move the robot to specific coordinates
+   - Parameters:
+     - `coordinates` (list): [x, y, z] coordinates to move to
+   - Example:
 ```json
 {
   "command": "move_robot", 
-  "params": {
-    "coordinates": [1.0, 1.0, 0.0]
-  }
-}
-```
+       "params": {"coordinates": [1.0, 1.0, 0.0]}
+     }
+     ```
 
-#### 2. Spawn Objects
-
-Creates a new object in the environment.
-
-```bash
-curl -X POST http://localhost:8001/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command": "spawn_objects", "params": {"object_choice": "cereal", "coordinates": [1.4, 1.0, 0.95], "color": "blue"}}'
-```
-
-Postman:
-- Method: POST
-- URL: http://localhost:8001/execute
-- Body (raw JSON):
+2. **spawn_objects**
+   - Create new objects in the environment
+   - Parameters:
+     - `object_choice` (str): Object type (e.g., "cereal", "milk", "spoon", "bowl")
+     - `coordinates` (list): [x, y, z] placement coordinates
+     - `color` (str, optional): Color of the object
+   - Example:
 ```json
 {
   "command": "spawn_objects", 
@@ -223,20 +183,13 @@ Postman:
 }
 ```
 
-#### 3. Pickup and Place
-
-Picks up an object and places it at the target location.
-
-```bash
-curl -X POST http://localhost:8001/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command": "pickup_and_place", "params": {"object_name": "cereal", "target_location": [1.0, 1.0, 0.8], "arm": "right"}}'
-```
-
-Postman:
-- Method: POST
-- URL: http://localhost:8001/execute
-- Body (raw JSON):
+3. **pickup_and_place**
+   - Pick up an object and place it at a target location
+   - Parameters:
+     - `object_name` (str): Name of the object to pick up
+     - `target_location` (list): [x, y, z] coordinates for placement
+     - `arm` (str, optional): Arm to use ("left" or "right")
+   - Example:
 ```json
 {
   "command": "pickup_and_place", 
@@ -248,133 +201,123 @@ Postman:
 }
 ```
 
-#### 4. Robot Perceive
-
-Makes the robot perceive objects in a specified area.
-
-```bash
-curl -X POST http://localhost:8001/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command": "robot_perceive", "params": {"perception_area": "table"}}'
-```
-
-Postman:
-- Method: POST
-- URL: http://localhost:8001/execute
-- Body (raw JSON):
+4. **robot_perceive**
+   - Make the robot perceive objects in its environment
+   - Parameters:
+     - `perception_area` (str, optional): Area to perceive (e.g., "table", "room")
+   - Example:
 ```json
 {
   "command": "robot_perceive", 
-  "params": {
-    "perception_area": "table"
-  }
-}
-```
+       "params": {"perception_area": "table"}
+     }
+     ```
 
-#### 5. Look for Object
+5. **get_kitchen_info**
+   - Retrieve detailed information about the kitchen environment
+   - No parameters required
+   - Example:
+     ```json
+     {
+       "command": "get_kitchen_info"
+     }
+     ```
 
-Makes the robot look for a specific object.
+6. **get_camera_info**
+   - Get information from the robot's cameras
+   - Parameters:
+     - `camera_name` (str, optional): Camera to query ("head_camera", "kinect", "wide_stereo")
+   - Example:
+     ```json
+     {
+       "command": "get_camera_info",
+       "params": {"camera_name": "head_camera"}
+     }
+     ```
 
-```bash
-curl -X POST http://localhost:8001/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command": "look_for_object", "params": {"object_name": "cereal"}}'
-```
-
-Postman:
-- Method: POST
-- URL: http://localhost:8001/execute
-- Body (raw JSON):
+7. **look_for_object**
+   - Make the robot look for a specific object
+   - Parameters:
+     - `object_name` (str): Name of the object to find
+   - Example:
 ```json
 {
   "command": "look_for_object", 
-  "params": {
-    "object_name": "cereal"
-  }
-}
-```
+       "params": {"object_name": "cup1"}
+     }
+     ```
 
-#### 6. Unpack Arms
-
-Unpacks the robot's arms.
-
-```bash
-curl -X POST http://localhost:8001/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command": "unpack_arms", "params": {}}'
-```
-
-Postman:
-- Method: POST
-- URL: http://localhost:8001/execute
-- Body (raw JSON):
+8. **unpack_arms**
+   - Unpack the robot's arms
+   - No parameters required
+   - Example:
 ```json
 {
-  "command": "unpack_arms", 
-  "params": {}
-}
-```
+       "command": "unpack_arms"
+     }
+     ```
 
-#### 7. Detect Object
-
-Detects objects of a specific type.
-
-```bash
-curl -X POST http://localhost:8001/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command": "detect_object", "params": {"object_type": "Cereal", "detection_area": "table"}}'
-```
-
-Postman:
-- Method: POST
-- URL: http://localhost:8001/execute
-- Body (raw JSON):
+9. **detect_object**
+   - Detect objects of a specific type
+   - Parameters:
+     - `object_type` (str): Type of object to detect (e.g., "Milk", "Cereal")
+   - Example:
 ```json
 {
   "command": "detect_object", 
-  "params": {
-    "object_type": "Cereal", 
-    "detection_area": "table"
-  }
-}
-```
+       "params": {"object_type": "Cereal"}
+     }
+     ```
 
-#### 8. Transport Object
-
-Transports an object to a target location.
-
-```bash
-curl -X POST http://localhost:8001/execute \
-  -H "Content-Type: application/json" \
-  -d '{"command": "transport_object", "params": {"object_name": "cereal", "target_location": [0.5, 0.5, 0.8], "arm": "left"}}'
-```
-
-Postman:
-- Method: POST
-- URL: http://localhost:8001/execute
-- Body (raw JSON):
+10. **transport_object**
+    - Transport an object to a target location
+    - Parameters:
+      - `object_name` (str): Name of the object to transport
+      - `target_location` (list): [x, y, z] coordinates for destination
+      - `arm` (str, optional): Arm to use ("left" or "right")
+    - Example:
 ```json
 {
   "command": "transport_object", 
   "params": {
     "object_name": "cereal", 
-    "target_location": [0.5, 0.5, 0.8], 
-    "arm": "left"
+          "target_location": [1.0, 1.0, 0.8], 
+          "arm": "right"
   }
 }
 ```
 
-### List Available Commands
+11. **get_table_height**
+    - Get the height of the kitchen table
+    - No parameters required
+    - Example:
+      ```json
+      {
+        "command": "get_table_height"
+      }
+      ```
 
-Get a list of all available commands with a GET request:
+### Response Format
 
-```bash
-curl -X GET http://localhost:8001/commands
+All commands return a JSON response with the following structure:
+```json
+{
+  "status": "success|error|not_found",
+  "message": "Descriptive message about the operation",
+  "additional_data": { ... }  // Optional additional information
+}
 ```
 
-Postman:
-- Method: GET
-- URL: http://localhost:8001/commands
+- `status`: Indicates the result of the operation
+  - `"success"`: Operation completed successfully
+  - `"error"`: An error occurred
+  - `"not_found"`: Requested object or action could not be completed
+
+### Error Handling
+
+- If a command fails, the response will include an error message
+- Check the `status` field to determine the outcome of the operation
+- Detailed error information is provided in the `message` field
 
 ## Troubleshooting Network Access
 

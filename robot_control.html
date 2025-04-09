@@ -255,6 +255,69 @@
         </form>
     </div>
 
+    <!-- Kitchen Info -->
+    <div class="command-panel">
+        <h2>Kitchen Environment Info</h2>
+        <form id="kitchenInfoForm">
+            <button type="submit">Get Kitchen Info</button>
+        </form>
+    </div>
+
+    <!-- Camera Info -->
+    <div class="command-panel">
+        <h2>Camera Info</h2>
+        <form id="cameraInfoForm">
+            <label for="cameraName">Camera Name:</label>
+            <select id="cameraName">
+                <option value="head_camera">Head Camera</option>
+                <option value="kinect">Kinect</option>
+                <option value="wide_stereo">Wide Stereo</option>
+            </select>
+            
+            <button type="submit">Get Camera Info</button>
+        </form>
+    </div>
+
+    <!-- Get Kitchen Table Height -->
+    <div class="command-panel">
+        <h2>Get Kitchen Table Height</h2>
+        <form id="tableHeightForm">
+            <button type="submit">Get Table Height</button>
+        </form>
+        <div id="tableHeightResult" class="result-display"></div>
+    </div>
+
+    <!-- Robot Camera View -->
+    <div class="command-panel" id="camera-panel">
+        <h2>Robot Camera View</h2>
+        <div class="camera-controls">
+            <label for="target-distance">Target Distance (meters):</label>
+            <input type="number" id="target-distance" value="2.0" min="0.1" max="10.0" step="0.1">
+            <button id="capture-btn">Capture Images</button>
+            <div id="error-message" class="error-message" style="display: none;"></div>
+        </div>
+        
+        <div class="camera-views" style="display: flex; flex-wrap: wrap; justify-content: space-around; gap: 20px;">
+            <div class="camera-view" style="flex: 1; min-width: 200px; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+                <h3>Color Image</h3>
+                <div id="color-loading" class="loading" style="text-align: center; font-style: italic; color: #888;">No image available</div>
+                <img id="color-image" style="display: none; max-width: 100%; height: auto; border: 1px solid #eee;" alt="Color camera view">
+            </div>
+            
+            <div class="camera-view" style="flex: 1; min-width: 200px; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+                <h3>Depth Image</h3>
+                <div id="depth-loading" class="loading" style="text-align: center; font-style: italic; color: #888;">No image available</div>
+                <img id="depth-image" style="display: none; max-width: 100%; height: auto; border: 1px solid #eee;" alt="Depth camera view">
+            </div>
+            
+            <div class="camera-view" style="flex: 1; min-width: 200px; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+                <h3>Segmentation Mask</h3>
+                <div id="segmentation-loading" class="loading" style="text-align: center; font-style: italic; color: #888;">No image available</div>
+                <img id="segmentation-image" style="display: none; max-width: 100%; height: auto; border: 1px solid #eee;" alt="Segmentation mask view">
+            </div>
+        </div>
+    </div>
+
     <script>
         // Server address - automatically use current host if served directly
         let defaultApiUrl;
@@ -510,6 +573,158 @@
                 object_name: objectName,
                 target_location: [x, y, z]
             });
+        });
+        
+        // Kitchen Info Form
+        document.getElementById('kitchenInfoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callRobotApi('get_kitchen_info', {});
+        });
+        
+        // Camera Info Form
+        document.getElementById('cameraInfoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const cameraName = document.getElementById('cameraName').value;
+            
+            callRobotApi('get_camera_info', {
+                camera_name: cameraName
+            });
+        });
+
+        // Add event listener for table height form
+        document.getElementById('tableHeightForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Create a loading indicator
+            const resultDiv = document.getElementById('tableHeightResult');
+            resultDiv.innerHTML = 'Detecting table height...';
+            
+            // Send API request
+            fetch('/api/execute_command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    command: 'get_table_height',
+                    params: {}
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    resultDiv.innerHTML = `
+                        <p>Table Height: ${data.height} meters</p>
+                        <p>Status: ${data.message}</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p>Error: ${data.message}</p>
+                    `;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `Error: ${error.message}`;
+            });
+        });
+
+        // Camera view functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const captureBtn = document.getElementById('capture-btn');
+            const targetDistanceInput = document.getElementById('target-distance');
+            const errorMessageDiv = document.getElementById('error-message');
+            
+            // Image elements
+            const colorImage = document.getElementById('color-image');
+            const depthImage = document.getElementById('depth-image');
+            const segmentationImage = document.getElementById('segmentation-image');
+            
+            // Loading elements
+            const colorLoading = document.getElementById('color-loading');
+            const depthLoading = document.getElementById('depth-loading');
+            const segmentationLoading = document.getElementById('segmentation-loading');
+            
+            captureBtn.addEventListener('click', function() {
+                // Show loading state
+                setLoadingState(true);
+                
+                // Clear any previous error messages
+                errorMessageDiv.style.display = 'none';
+                errorMessageDiv.textContent = '';
+                
+                // Get target distance
+                const targetDistance = targetDistanceInput.value;
+                
+                // Make API request
+                fetch(`/api/camera-images?target_distance=${targetDistance}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Update images
+                            updateImages(data.images);
+                        } else {
+                            // Show error
+                            showCameraError(data.message || 'Failed to retrieve camera images');
+                        }
+                    })
+                    .catch(err => {
+                        showCameraError('API request failed: ' + err.message);
+                    })
+                    .finally(() => {
+                        setLoadingState(false);
+                    });
+            });
+            
+            function updateImages(images) {
+                // Update color image
+                if (images.color_image) {
+                    colorImage.src = 'data:image/png;base64,' + images.color_image;
+                    colorImage.style.display = 'block';
+                    colorLoading.style.display = 'none';
+                } else {
+                    colorImage.style.display = 'none';
+                    colorLoading.style.display = 'block';
+                }
+                
+                // Update depth image
+                if (images.depth_image) {
+                    depthImage.src = 'data:image/png;base64,' + images.depth_image;
+                    depthImage.style.display = 'block';
+                    depthLoading.style.display = 'none';
+                } else {
+                    depthImage.style.display = 'none';
+                    depthLoading.style.display = 'block';
+                }
+                
+                // Update segmentation mask
+                if (images.segmentation_mask) {
+                    segmentationImage.src = 'data:image/png;base64,' + images.segmentation_mask;
+                    segmentationImage.style.display = 'block';
+                    segmentationLoading.style.display = 'none';
+                } else {
+                    segmentationImage.style.display = 'none';
+                    segmentationLoading.style.display = 'block';
+                }
+            }
+            
+            function showCameraError(message) {
+                errorMessageDiv.textContent = message;
+                errorMessageDiv.style.display = 'block';
+            }
+            
+            function setLoadingState(isLoading) {
+                captureBtn.disabled = isLoading;
+                
+                if (isLoading) {
+                    colorLoading.textContent = 'Loading...';
+                    depthLoading.textContent = 'Loading...';
+                    segmentationLoading.textContent = 'Loading...';
+                } else {
+                    colorLoading.textContent = 'No image available';
+                    depthLoading.textContent = 'No image available';
+                    segmentationLoading.textContent = 'No image available';
+                }
+            }
         });
     </script>
 </body>

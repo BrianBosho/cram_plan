@@ -75,6 +75,8 @@ from robot_actions_api import (
     transport_object
 )
 
+from camera import get_camera_images    
+
 # Static files mounting - if we have a 'static' directory
 if os.path.exists('static'):
     app.mount("/static", StaticFiles(directory="static"), name="static")
