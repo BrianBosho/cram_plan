@@ -1,15 +1,13 @@
+.vscode/
+
+__pycache__/
+
+venv/
+
+.env
+
 # Ignore pycram folder
 pycram/
 
 # Ignore reference docs folder
-reference docs/
-
-# Optional: Ignore common Python-related files
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
+reference_docs/
