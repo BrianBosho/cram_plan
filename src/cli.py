@@ -1,15 +1,11 @@
 import robo_cram
 
-
-ENV_OPTIONS = {
-    1: robo_cram.Env.KITCHEN,
-    2: robo_cram.Env.APARTMENT
-}
+ENV_OPTIONS = {1: robo_cram.Env.KITCHEN, 2: robo_cram.Env.APARTMENT}
 OBJ_TYPES = {
     1: robo_cram.Obj.CEREAL,
     2: robo_cram.Obj.MILK,
     3: robo_cram.Obj.SPOON,
-    4: robo_cram.Obj.BOWL
+    4: robo_cram.Obj.BOWL,
 }
 COLOURS = {
     1: robo_cram.Colour.RED,
@@ -18,12 +14,12 @@ COLOURS = {
     4: robo_cram.Colour.YELLOW,
     5: robo_cram.Colour.WHITE,
     6: robo_cram.Colour.BLACK,
-    7: robo_cram.Colour.DEFAULT
+    7: robo_cram.Colour.DEFAULT,
 }
 LOCATIONS = {
     1: robo_cram.Location.KITCHEN_ISLAND,
     2: robo_cram.Location.SINK_AREA,
-    3: robo_cram.Location.TABLE
+    3: robo_cram.Location.TABLE,
 }
 
 
@@ -82,7 +78,9 @@ def spawn_object():
     while len(obj_name) == 0:
         obj_name = input("You must give the object a name: ").strip()
 
-    coordinates_str = input("Enter the coordinates to spawn the object using the format x,y,z: ").strip()
+    coordinates_str = input(
+        "Enter the coordinates to spawn the object using the format x,y,z: "
+    ).strip()
     coordinates = coordinates_str.split(",")
 
     while True:
@@ -111,12 +109,16 @@ def spawn_object():
     while len(colour) == 0 or int(colour) not in COLOURS:
         colour = input("Invalid choice, enter your choice: ").strip()
 
-    response = robo_cram.spawn_object(OBJ_TYPES[int(obj_type)], obj_name, coordinates, COLOURS[int(colour)])
+    response = robo_cram.spawn_object(
+        OBJ_TYPES[int(obj_type)], obj_name, coordinates, COLOURS[int(colour)]
+    )
     print(f"{response['status'].upper()}: {response['message']}")
 
 
 def move_robot():
-    coordinates_str = input("Enter the coordinates to move the robot to using the format x,y,z: ").strip()
+    coordinates_str = input(
+        "Enter the coordinates to move the robot to using the format x,y,z: "
+    ).strip()
     coordinates = coordinates_str.split(",")
 
     while True:
@@ -186,7 +188,9 @@ def is_object_type_in_location():
     if len(perception_location) == 0 or int(perception_location) not in LOCATIONS:
         perception_location = input("Invalid choice, enter your choice: ").strip()
 
-    response = robo_cram.is_object_type_in_location(LOCATIONS[int(perception_location)], OBJ_TYPES[int(obj_type)])
+    response = robo_cram.is_object_type_in_location(
+        LOCATIONS[int(perception_location)], OBJ_TYPES[int(obj_type)]
+    )
     print(f"{response['status'].upper()}: {response['message']}")
 
 
@@ -207,7 +211,9 @@ def is_object_in_location():
     if len(perception_location) == 0 or int(perception_location) not in LOCATIONS:
         perception_location = input("Invalid choice, enter your choice: ").strip()
 
-    response = robo_cram.is_object_in_location(LOCATIONS[int(perception_location)], obj_name)
+    response = robo_cram.is_object_in_location(
+        LOCATIONS[int(perception_location)], obj_name
+    )
     print(f"{response['status'].upper()}: {response['message']}")
 
 
