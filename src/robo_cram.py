@@ -1,10 +1,12 @@
 from enum import Enum
 from typing import Any, Tuple, TypedDict
 
+import numpy as np
 from pycram.datastructures.dataclasses import Color
 from pycram.datastructures.enums import (
     Arms,
     DetectionTechnique,
+    Frame,
     Grasp,
     TorsoState,
     WorldMode,
@@ -32,6 +34,7 @@ from pycram.failures import (
     PerceptionObjectNotFound,
 )
 from pycram.process_module import simulated_robot
+from pycram.robot_description import RobotDescription
 from pycram.world_concepts.world_object import Object
 from pycram.worlds.bullet_world import BulletWorld
 from pycrap.ontologies import Apartment, Bowl, Cereal, Kitchen, Milk, Robot, Spoon
@@ -173,13 +176,13 @@ def init_simulation(env: Env = Env.KITCHEN) -> Response:
     return Response(status="success", message="Simulation initialisation successful")
 
 
-def robot_pack_arms() -> Response:
+def pack_arms() -> Response:
     with simulated_robot:
         ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
     return Response(status="success", message="Robot arms pack successful")
 
 
-def move_torso(high: bool) -> Response:
+def adjust_torso(high: bool) -> Response:
     with simulated_robot:
         MoveTorsoActionDescription(
             [TorsoState.HIGH if high else TorsoState.LOW]
@@ -348,68 +351,6 @@ def is_object_in_location(location: Location, obj_name: str) -> Response:
     )
 
 
-def is_object_visible_to_robot(obj_name: str) -> Response:
-    obj_name = obj_name.lower()
-
-    with simulated_robot:
-        try:
-            obj = BelieveObject(names=[obj_name]).resolve()
-        except StopIteration:
-            obj = None
-
-    if obj is None:
-        return Response(
-            status="error", message=f"Object '{obj_name}' is not in the environment"
-        )
-
-    with simulated_robot:
-        robot = BelieveObject(names=[ROBOT_NAME]).resolve()
-        visible = CostmapLocation(target=obj, visible_for=robot).resolve()
-
-    print(visible)
-
-    if visible is None:
-        return Response(
-            status="error",
-            message=f"Object '{obj_name}' is in the environment but not visible to the robot",
-        )
-
-    return Response(
-        status="success", message=f"Object '{obj_name}' is visible to the robot"
-    )
-
-
-def is_object_reachable_by_robot(obj_name: str) -> Response:
-    obj_name = obj_name.lower()
-
-    with simulated_robot:
-        try:
-            obj = BelieveObject(names=[obj_name]).resolve()
-        except StopIteration:
-            obj = None
-
-    if obj is None:
-        return Response(
-            status="error", message=f"Object '{obj_name}' is not in the environment"
-        )
-
-    with simulated_robot:
-        robot = BelieveObject(names=[ROBOT_NAME]).resolve()
-        reachable = CostmapLocation(target=obj, reachable_for=robot).resolve()
-
-    print(reachable)
-
-    if not reachable.reachable_arms:
-        return Response(
-            status="error",
-            message=f"Object '{obj_name}' is in the environment but not reachable by the robot",
-        )
-
-    return Response(
-        status="success", message=f"Object '{obj_name}' is reachable by the robot"
-    )
-
-
 def look_at_object(obj_name: str) -> Response:
     obj_name = obj_name.lower()
 
@@ -533,6 +474,74 @@ def pick_and_place(obj_name: str, destination: Location) -> Response:
     return Response(
         status="success",
         message=f"Object '{obj_name}' successfully moved to '{LOCATIONS[destination]}'",
+    )
+
+
+def capture_image(target_distance: float = 2.0) -> Response:
+    robot = BelieveObject(names=[ROBOT_NAME]).resolve()
+    camera_link_name = RobotDescription.current_robot_description.get_camera_link()
+    camera_link = robot.get_link(camera_link_name)
+    camera_pose = camera_link.pose
+    camera_axis = (
+        RobotDescription.current_robot_description.get_default_camera().front_facing_axis
+    )
+
+    target = np.array(camera_axis) * target_distance
+    target_pose = Pose(target, frame=camera_link.tf_frame)
+    target_pose = robot.local_transformer.transform_pose(target_pose, Frame.Map.value)
+
+    rgb_image, depth_image, segmentation_mask = world.get_images_for_target(
+        target_pose, camera_pose
+    )
+
+    return Response(
+        status="success",
+        message="Image capture successful",
+        payload={
+            "rgb_image": rgb_image,
+            "depth_image": depth_image,
+            "segmentation_mask": segmentation_mask,
+        },
+    )
+
+
+def get_objects_in_robot_view(
+    target_distance: float = 2.0, min_pixel_count=50
+) -> Response:
+    robot = BelieveObject(names=[ROBOT_NAME]).resolve()
+    camera_link_name = RobotDescription.current_robot_description.get_camera_link()
+    camera_link = robot.get_link(camera_link_name)
+    camera_pose = camera_link.pose
+    camera_axis = (
+        RobotDescription.current_robot_description.get_default_camera().front_facing_axis
+    )
+
+    target = np.array(camera_axis) * target_distance
+    target_pose = Pose(target, frame=camera_link.tf_frame)
+    target_pose = robot.local_transformer.transform_pose(target_pose, Frame.Map.value)
+
+    _, __, segmentation_mask = world.get_images_for_target(target_pose, camera_pose)
+    unique_ids = np.unique(segmentation_mask)
+    visible_objects = {}
+
+    for idx in unique_ids:
+        pixel_count = np.sum(segmentation_mask == idx)
+        if pixel_count < min_pixel_count:
+            continue
+
+        obj = world.get_object_by_id(idx)
+        if obj is not None:
+            visible_objects[idx] = {
+                "name": obj.name,
+                "type1": str(type(obj).__name__),
+                "type2": str(type(obj)),
+                "pixel_count": int(pixel_count),
+            }
+
+    return Response(
+        status="success",
+        message="Getting objects in robot view successful",
+        payload=visible_objects,
     )
 
 
