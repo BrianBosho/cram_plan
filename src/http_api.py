@@ -92,7 +92,7 @@ class RobotCommands:
         rgb_image.save(rgb_image_buffer, format="PNG")
         rgb_image_buffer.seek(0)
 
-        depth_image = Image.fromarray(response["payload"]["depth_image"])
+        depth_image = Image.fromarray(response["payload"]["depth_image"]).convert("RGB")
         depth_image_buffer = io.BytesIO()
         depth_image.save(depth_image_buffer, format="PNG")
         depth_image_buffer.seek(0)
