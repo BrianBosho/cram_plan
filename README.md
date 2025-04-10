@@ -5,21 +5,43 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Code style: flake8](https://img.shields.io/badge/code%20style-flake8-red.svg)](https://github.com/pycqa/flake8)
 
-A FastAPI-based REST API for controlling the PyCRAM robot simulation environment through HTTP requests.
+A command-line application and a FastAPI-based REST API for controlling a PR2 robot in a BulletWorld simulation
+environment via [PyCRAM](https://pycram.readthedocs.io/en/latest/index.html)
 
 ## Overview
 
-This project provides an HTTP API interface to control the PyCRAM robot simulation, allowing you to:
+This software provides the following functions for controlling a PR2 robot and the simulated environment in which it
+resides:
 
-- Move the robot
-- Manipulate objects (pickup, place, transport)
-- Spawn new objects in the environment
-- Perceive objects in the environment
-- Execute other robot control commands
+1. Pack the robot's arms
+2. Adjust the robot's torso
+3. Spawn objects in the environment
+4. Move the robot within its environment
+5. Find if an object of some type is in the environment
+6. Find if an object with some name is in the environment
+7. Find if an object of some type is in some location of the environment
+8. Find if an object with some name is in some location of the environment
+9. Look at an object
+10. Pick an object and place it elsewhere
+11. Capture an image using the robot's camera
+12. Get a list of objects in the robot's field of view
+13. Exit the simulation
 
-The system includes both a programmatic API and a web-based user interface.
+## Components
 
-## Development
+- CLI application: command-line application to interact with the system from the terminal
+- REST API application: FastAPI-based API to interact with the system remotely using other tools that can call the API
+- Web Interface: web page to remotely interact with the system on a web browser
+
+## Installation and Development
+
+### Prerequisites
+
+A machine with the following tools installed is required:
+
+- Python 3.9+
+- PyCRAM (and its dependencies such as ROS Noetic and PyBullet)
+- FastAPI (and other packages listed in `requirements.txt`)
 
 ### Linting
 
@@ -32,360 +54,252 @@ this process.
 2. Install git hook scripts: `pre-commit install`
 3. (optional) Run against all files: `pre-commit run --all-files`
 
-## Components
-
-- **API Server**: FastAPI-based server that handles requests
-- **Non-Interactive Action Layer**: Parameter-driven versions of robot actions
-- **Web Interface**: Browser-based UI for easy control
-- **Test Client**: Python script for testing API functionality
-
-## Installation
-
-### Prerequisites
-
-- Python 3.6+
-- PyCRAM simulation environment
-- FastAPI and Uvicorn
-
-### Setup
-
-1. Install required Python packages:
-
-```bash
-pip install fastapi uvicorn requests
-```
-
-2. Ensure PyCRAM is properly installed and configured.
-
-3. Clone or download this repository to your local machine.
-
 ## Quick Start
 
-### Starting the API Server
+### Using the CLI application
 
-1. Run the API server:
+1. Run the CLI application: `./python3 src/cli.py`
+2. Follow the prompts from the application
 
-```bash
-python api.py
-```
+### Using the REST API application and web interface
 
-2. You should see output confirming the server is running, and a browser will automatically open with the web interface:
+Update required environment variables by editing the `.env` file (create it if it doesn't exist, using the format laid
+out in `.env.sample`)
 
-```
-Robot spawned as 'pr2'.
-Environment initialized successfully.
-Starting PyCRAM API server on port 8001...
-Web interface will be available at: http://localhost:8001
-To access from other devices, use: http://YOUR_IP_ADDRESS:8001
-Browser window opened. If no window appeared, navigate to: http://localhost:8001
-INFO:     Started server process [40354]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-```
+| Env variable key  | Env variable value  | Description                                       |
+| ----------------- | ------------------- | ------------------------------------------------- |
+| HOST              | 0.0.0.0             | Hostname to access the API endpoints from         |
+| PORT              | 8001                | Port that the API endpoints are to be exposed on  |
+| ALLOW_HEADERS     | *                   | Headers to allow as a comma separated list        |
+| ALLOW_METHODS     | *                   | Methods to allow as a comma separated list        |
+| ALLOW_ORIGINS     | *                   | Origina to allow as a comma separated list        |
+| SIM_ENV           | kitchen             | Simulation environment (kitchen or apartment)     |
 
-### Accessing the API and Web Interface Over a Network
-
-The API server is configured to accept connections from all network interfaces (0.0.0.0), which means you can access it from other devices on your network:
-
-1. Find your server's IP address by running one of these commands:
-   ```bash
-   # On Linux
-   ip addr show
-   
-   # On macOS
-   ifconfig | grep inet
-   
-   # On Windows
-   ipconfig
-   ```
-
-2. Access the API and web interface from other devices:
-   - Web interface URL: `http://YOUR_SERVER_IP:8001`
-   - API endpoint: `http://YOUR_SERVER_IP:8001/execute`
-   - OpenAPI docs: `http://YOUR_SERVER_IP:8001/docs`
-
-### Using in a Virtual Machine
-
-If you're running the server in a virtual machine (VM), you need to configure networking properly:
-
-1. **VM IP Address**: Find the VM's IP address (not localhost):
-   ```bash
-   # Inside the VM
-   ip addr show
-   ```
-   Look for an IP like 192.168.x.x (not 127.0.0.1)
-
-2. **Network Mode**: Make sure your VM is using either:
-   - **Bridged networking**: Your VM appears as a separate device on your network
-   - **Port forwarding**: Forward port 8001 from host to VM
-
-3. **Accessing from host machine**: Use the VM's IP address:
-   ```
-   http://VM_IP_ADDRESS:8001
-   ```
-
-4. **Troubleshooting VM connections**:
-   - Make sure your VM firewall allows connections on port 8001
-   - Try `ping VM_IP_ADDRESS` from host to check connectivity
-   - Ensure port forwarding is set up if using NAT networking
-
-### Mobile Device Access
-
-To access the interface from a mobile device:
-
-1. Make sure your phone/tablet is on the same WiFi network
-2. Use your server's IP address in the browser: `http://YOUR_SERVER_IP:8001`
-3. The interface will automatically adapt to mobile screen sizes
-
-### Using the Web Interface
-
-1. The web interface is now directly integrated with the server:
-   - When you start the server, it's automatically available at http://localhost:8001
-   - No need to run a separate server for the HTML file
-
-2. The interface will automatically detect the server address when loaded
-
-3. Use the form controls to interact with the robot simulation.
-
-### Testing with the Python Client
-
-Run the test script to verify API functionality:
-
-```bash
-python test_api.py
-```
-
-## Features
-
-- **RESTful API Design**: Standard HTTP methods and JSON responses
-- **Web Interface**: Easy-to-use browser control panel
-- **Parameter-Based Control**: Non-interactive versions of all robot actions
-- **Error Handling**: Structured error responses and logging
-- **CORS Support**: Web interface works across different domains
-- **Network Accessible**: Control the robot from any device on your network
+1. Run the REST API application: `./python3 src/http_api.py`
+2. Access the web page to control the robot on `http://hostname:port`
+3. Access the REST API endoints (further details on the API are listed in later sections of this document):
+    - List all supported commands: `http://hostname:port/commands`
+    - Execute a specific command: `http://hostname:port/execute`
 
 ## API Reference
 
-This section details all available commands in the PyCRAM Robot API.
+This API reference uses [HTTPie](https://httpie.io/), and the listed commands can be run after installing HTTPie
 
-#### Available Commands
+Some parameters needed by different API endpoints use numeric codes, and these numeric codes are listed below:
 
-1. **move_robot**
-   - Move the robot to specific coordinates
-   - Parameters:
-     - `coordinates` (list): [x, y, z] coordinates to move to
-   - Example:
-```json
+Objects and their numeric codes:
+
+| Object  | Code  |
+| ------- | ----- |
+| Cereal  | 0     |
+| Milk    | 1     |
+| Spoon   | 2     |
+| Bowl    | 3     |
+
+Colours and their numeric codes:
+
+| Colour          | Code  |
+| --------------- | ----- |
+| Red             | 0     |
+| Green           | 1     |
+| Blue            | 2     |
+| Yellow          | 3     |
+| White           | 4     |
+| Black           | 5     |
+| Default colour  | 6     |
+
+Location areas and their numeric codes:
+
+| Location        | Code  |
+| --------------- | ----- |
+| Kitchen island  | 0     |
+| Sink area       | 1     |
+| Table            | 2    |
+
+### List all supported API endpoints
+
+```bash
+$ http GET http://hostname:port/commands
+[
+  "pack_arms",
+  "adjust_torso",
+  "spawn_object",
+  "move_robot",
+  "is_object_type_in_environment",
+  "is_object_in_environment",
+  "is_object_type_in_location",
+  "is_object_in_location",
+  "look_at_object",
+  "pick_and_place",
+  "capture_image",
+  "get_objects_in_robot_view"
+]
+```
+
+### Pack the robot's arms
+
+```bash
+$ http POST http://hostname:port/execute \
+    command=pack_arms
 {
-  "command": "move_robot", 
-       "params": {"coordinates": [1.0, 1.0, 0.0]}
-     }
-     ```
+  "status": "success",
+  "message": "Robot arms pack successful"
+}
+```
 
-2. **spawn_objects**
-   - Create new objects in the environment
-   - Parameters:
-     - `object_choice` (str): Object type (e.g., "cereal", "milk", "spoon", "bowl")
-     - `coordinates` (list): [x, y, z] placement coordinates
-     - `color` (str, optional): Color of the object
-   - Example:
-```json
+### Adjust the robot's torso
+
+```bash
+$ http POST http://hostname:port/execute \
+    command=adjust_torso \
+    params:='{"high": true}'
 {
-  "command": "spawn_objects", 
-  "params": {
-    "object_choice": "cereal", 
-    "coordinates": [1.4, 1.0, 0.95], 
-    "color": "blue"
+  "status": "success",
+  "message": "Robot torso move to high successful"
+}
+```
+
+### Spawn objects in the environment
+
+```bash
+$ http POST http://hostname:port/execute \
+    command=spawn_object \
+    params:='{"obj": 0, "obj_name": "cereal1", "coordinates": [1.4, 1.0, 0.9], "colour": 0}'
+{
+  "status": "success",
+  "message": "Object 'cereal1' created successfully",
+  "payload": {
+    "object": {
+      "name": "cereal1",
+      "type": "Cereal",
+      "file": "breakfast_cereal.stl",
+      "position": [1.4, 1.0, 0.9],
+      "colour": [1.0, 0.0, 0.0, 1.0]
+    }
   }
 }
 ```
 
-3. **pickup_and_place**
-   - Pick up an object and place it at a target location
-   - Parameters:
-     - `object_name` (str): Name of the object to pick up
-     - `target_location` (list): [x, y, z] coordinates for placement
-     - `arm` (str, optional): Arm to use ("left" or "right")
-   - Example:
-```json
+### Move the robot within its environment
+
+```bash
+$ http POST http://hostname:port/execute \
+    command=move_robot \
+    params:='{"coordinates": [0.75, 1, 0]}'
 {
-  "command": "pickup_and_place", 
-  "params": {
-    "object_name": "cereal", 
-    "target_location": [1.0, 1.0, 0.8], 
-    "arm": "right"
+  "status": "success",
+  "message": "Robot moved to coordinates [0.75, 1.0, 0.0]",
+  "payload": {
+    "coordinates": [0.75, 1.0, 0.0]
   }
 }
 ```
 
-4. **robot_perceive**
-   - Make the robot perceive objects in its environment
-   - Parameters:
-     - `perception_area` (str, optional): Area to perceive (e.g., "table", "room")
-   - Example:
-```json
+### Find if an object of some type is in the environment
+
+```bash
+$ http POST http://hostname:port/execute \
+    command=is_object_type_in_environment \
+    params:='{"obj": 0}'
 {
-  "command": "robot_perceive", 
-       "params": {"perception_area": "table"}
-     }
-     ```
-
-5. **get_kitchen_info**
-   - Retrieve detailed information about the kitchen environment
-   - No parameters required
-   - Example:
-     ```json
-     {
-       "command": "get_kitchen_info"
-     }
-     ```
-
-6. **get_camera_info**
-   - Get information from the robot's cameras
-   - Parameters:
-     - `camera_name` (str, optional): Camera to query ("head_camera", "kinect", "wide_stereo")
-   - Example:
-     ```json
-     {
-       "command": "get_camera_info",
-       "params": {"camera_name": "head_camera"}
-     }
-     ```
-
-7. **look_for_object**
-   - Make the robot look for a specific object
-   - Parameters:
-     - `object_name` (str): Name of the object to find
-   - Example:
-```json
-{
-  "command": "look_for_object", 
-       "params": {"object_name": "cup1"}
-     }
-     ```
-
-8. **unpack_arms**
-   - Unpack the robot's arms
-   - No parameters required
-   - Example:
-```json
-{
-       "command": "unpack_arms"
-     }
-     ```
-
-9. **detect_object**
-   - Detect objects of a specific type
-   - Parameters:
-     - `object_type` (str): Type of object to detect (e.g., "Milk", "Cereal")
-   - Example:
-```json
-{
-  "command": "detect_object", 
-       "params": {"object_type": "Cereal"}
-     }
-     ```
-
-10. **transport_object**
-    - Transport an object to a target location
-    - Parameters:
-      - `object_name` (str): Name of the object to transport
-      - `target_location` (list): [x, y, z] coordinates for destination
-      - `arm` (str, optional): Arm to use ("left" or "right")
-    - Example:
-```json
-{
-  "command": "transport_object", 
-  "params": {
-    "object_name": "cereal", 
-          "target_location": [1.0, 1.0, 0.8], 
-          "arm": "right"
-  }
-}
-```
-
-11. **get_table_height**
-    - Get the height of the kitchen table
-    - No parameters required
-    - Example:
-      ```json
+  "status": "success",
+  "message": "1 object of type 'Cereal' is in the environment",
+  "payload": {
+    "objects": [
       {
-        "command": "get_table_height"
+        "name": "cereal1",
+        "type": "Cereal"
       }
-      ```
-
-### Response Format
-
-All commands return a JSON response with the following structure:
-```json
-{
-  "status": "success|error|not_found",
-  "message": "Descriptive message about the operation",
-  "additional_data": { ... }  // Optional additional information
+    ]
+  }
 }
 ```
 
-- `status`: Indicates the result of the operation
-  - `"success"`: Operation completed successfully
-  - `"error"`: An error occurred
-  - `"not_found"`: Requested object or action could not be completed
+### Find if an object with some name is in the environment
 
-### Error Handling
+```bash
+$ http POST http://hostname:port/execute \
+    command=is_object_in_environment \
+    params:='{"obj_name": "cereal1"}'
+{
+  "status": "success", "message":
+  "Object 'cereal1' is in the environment"
+}
+```
 
-- If a command fails, the response will include an error message
-- Check the `status` field to determine the outcome of the operation
-- Detailed error information is provided in the `message` field
+### Find if an object of some type is in some location of the environment
 
-## Troubleshooting Network Access
+```bash
+$ http POST http://hostname:port/execute \
+    command=is_object_type_in_location \
+    params:='{"obj": 0, "location": 0}'
+TODO: command has a bug that needs to be rectified
+```
 
-If you can't access the API from other devices:
+### Find if an object with some name is in some location of the environment
 
-1. **Firewall Issues**: Check if your firewall is blocking port 8001
-   ```bash
-   # Linux
-   sudo ufw status
-   # If needed, allow the port
-   sudo ufw allow 8001
-   ```
+```bash
+$ http POST http://hostname:port/execute \
+    command=is_object_in_location \
+    params:='{"obj_name": "cereal1", "location": 0}'
+TODO: command has a bug that needs to be rectified
+```
 
-2. **Network Isolation**: Ensure both devices are on the same network
+### Look at an object
 
-3. **Correct IP**: Make sure you're using the correct server IP address
+```bash
+$ http POST http://hostname:port/execute \
+    command=look_at_object \
+    params:='{"obj_name": "cereal1"}'
+{
+  "status": "success",
+  "message": "Robot is now looking at 'cereal1'"
+}
+```
 
-4. **CORS Issues**: If experiencing CORS problems in the browser, the API already has CORS middleware enabled
+### Pick an object and place it elsewhere
 
-## Available Commands
+```bash
+$ http POST http://hostname:port/execute \
+    command=pick_and_place \
+    params:='{"obj_name": "cereal1", "destination": 0}'
+TODO: command has a bug that needs to be rectified
+```
 
-- `spawn_objects` - Create new objects in the environment
-- `move_robot` - Navigate the robot to coordinates
-- `pickup_and_place` - Pick up an object and place it somewhere
-- `robot_perceive` - Report objects visible to the robot
-- `look_for_object` - Find and focus on a specific object
-- `unpack_arms` - Prepare robot arms
-- `detect_object` - Detect objects of a specific type
-- `transport_object` - Move an object to a destination
+### Capture an image using the robot's camera
 
-## Documentation
+```bash
+$ http POST http://hostname:port/execute \
+    command=capture_image \
+    params:='{"target_distance": 2.0}'
+{
+  "status": "success",
+  "message": "Image capture successful",
+  "payload": {
+    "rgb_image": "base64 encoded image",
+    "depth_image": "base64 encoded image",
+    "segmentation_mask": "base64 encoded image"
+  }
+}
+```
+
+### Get a list of objects in the robot's field of view
+
+```bash
+$ http POST http://hostname:port/execute \
+    command=get_objects_in_robot_view \
+    params:='{"target_distance": 2.0, "min_pixel_count": 50}'
+TODO: command has a bug that needs to be rectified
+```
+
+### Exit the simulation
+
+This command is disabled from being accessed remotely, and therefore it has no API endpoint
+
+## Further documentation
 
 For more detailed information:
 
 - [User Guide](user_guide.md) - Explains basic usage for end users
 - [Technical Guide](technical_guide.md) - Provides technical details for developers
-
-## Integration with External Systems
-
-The API can be easily integrated with:
-
-- Custom UI applications
-- Python scripts
-- LangChain or other LLM frameworks
-- Any system capable of making HTTP requests
-
-## License
-
-MIT License
-
-## Credits
-
-Developed for the PyCRAM robot simulation framework. Special thanks to the PyCRAM development team. 
+- [Camera Guide](camera.md) - Camera details for developers
