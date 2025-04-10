@@ -295,11 +295,3 @@ TODO: command has a bug that needs to be rectified
 ### Exit the simulation
 
 This command is disabled from being accessed remotely, and therefore it has no API endpoint
-
-## Further documentation
-
-For more detailed information:
-
-- [User Guide](user_guide.md) - Explains basic usage for end users
-- [Technical Guide](technical_guide.md) - Provides technical details for developers
-- [Camera Guide](camera.md) - Camera details for developers
