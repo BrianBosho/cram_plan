@@ -21,7 +21,6 @@ from pycram.designators.action_designator import (
     ParkArmsActionDescription,
     PickUpActionDescription,
     PlaceActionDescription,
-    ReachToPickUpActionDescription,
 )
 from pycram.designators.location_designator import (
     CostmapLocation,
