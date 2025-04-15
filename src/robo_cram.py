@@ -43,7 +43,7 @@ class Env(Enum):
     KITCHEN, APARTMENT = range(2)
 
 
-class Obj(Enum):
+class ObjectType(Enum):
     CEREAL, MILK, SPOON, BOWL = range(4)
 
 
@@ -69,11 +69,11 @@ ENVIRONMENTS = {
     Env.KITCHEN: ("kitchen", Kitchen, "kitchen.urdf"),
     Env.APARTMENT: ("apartment", Apartment, "apartment.urdf"),
 }
-OBJECTS = {
-    Obj.CEREAL: (Cereal, "breakfast_cereal.stl"),
-    Obj.MILK: (Milk, "milk.stl"),
-    Obj.SPOON: (Spoon, "spoon.stl"),
-    Obj.BOWL: (Bowl, "bowl.stl"),
+OBJECTS_TYPES = {
+    ObjectType.CEREAL: (Cereal, "breakfast_cereal.stl"),
+    ObjectType.MILK: (Milk, "milk.stl"),
+    ObjectType.SPOON: (Spoon, "spoon.stl"),
+    ObjectType.BOWL: (Bowl, "bowl.stl"),
 }
 LOCATIONS = {
     Location.KITCHEN_ISLAND: "kitchen_island_surface",
@@ -193,7 +193,7 @@ def adjust_torso(high: bool) -> Response:
 
 
 def spawn_object(
-    obj: Obj,
+    obj_type: ObjectType,
     obj_name: str,
     coordinates: Tuple[float, float, float] = (1.4, 1.0, 0.9),
     colour: Colour = Colour.DEFAULT,
@@ -213,10 +213,10 @@ def spawn_object(
         )
 
     obj_name = obj_name.lower()
-    obj_type, obj_file = OBJECTS[obj]
+    object_type, obj_file = OBJECTS_TYPES[obj_type]
     Object(
         obj_name,
-        obj_type,
+        object_type,
         obj_file,
         pose=Pose(position),
         color=Color.from_list(COLOURS[colour]),
@@ -263,9 +263,9 @@ def move_robot(coordinates: Tuple[float, float, float] = (0, 0, 0)) -> Response:
     )
 
 
-def is_object_type_in_environment(obj: Obj) -> Response:
-    obj_type = OBJECTS[obj][0]
-    objects = BelieveObject(types=[obj_type])
+def is_object_type_in_environment(obj_type: ObjectType) -> Response:
+    object_type = OBJECTS_TYPES[obj_type][0]
+    objects = BelieveObject(types=[object_type])
     objs_in_environment = [
         {"name": i.name, "type": str(obj_type).split(".")[1]} for i in objects
     ]
@@ -287,19 +287,15 @@ def is_object_in_environment(obj_name: str) -> Response:
         except StopIteration:
             obj = None
 
-    if obj is None:
-        return Response(
-            status="error", message=f"Object '{obj_name}' is not in the environment"
-        )
-
     return Response(
-        status="success", message=f"Object '{obj_name}' is in the environment"
+        status="success" if obj is not None else "error",
+        message=f"Object '{obj_name}' is{'' if obj is None else ' not'} in the environment",
     )
 
 
-def is_object_type_in_location(location: Location, obj: Obj) -> Response:
-    obj_type = OBJECTS[obj][0]
-    object_desig = BelieveObject(types=[obj_type])
+def is_object_type_in_location(location: Location, obj_type: ObjectType) -> Response:
+    object_type = OBJECTS_TYPES[obj_type][0]
+    object_desig = BelieveObject(types=[object_type])
 
     if len([_ for _ in object_desig]) == 0:
         return Response(

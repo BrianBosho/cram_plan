@@ -164,7 +164,7 @@ $ http POST http://hostname:port/execute \
 ```bash
 $ http POST http://hostname:port/execute \
     command=spawn_object \
-    params:='{"obj": 0, "obj_name": "cereal1", "coordinates": [1.4, 1.0, 0.9], "colour": 0}'
+    params:='{"obj_type": 0, "obj_name": "cereal1", "coordinates": [1.4, 1.0, 0.9], "colour": 0}'
 {
   "status": "success",
   "message": "Object 'cereal1' created successfully",
@@ -200,7 +200,7 @@ $ http POST http://hostname:port/execute \
 ```bash
 $ http POST http://hostname:port/execute \
     command=is_object_type_in_environment \
-    params:='{"obj": 0}'
+    params:='{"obj_type": 0}'
 {
   "status": "success",
   "message": "1 object of type 'Cereal' is in the environment",
@@ -232,7 +232,7 @@ $ http POST http://hostname:port/execute \
 ```bash
 $ http POST http://hostname:port/execute \
     command=is_object_type_in_location \
-    params:='{"obj": 0, "location": 0}'
+    params:='{"obj_type": 0, "location": 0}'
 TODO: command has a bug that needs to be rectified
 ```
 

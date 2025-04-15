@@ -8,10 +8,10 @@ import robo_cram
 IMAGES_DIR = "images"
 ENV_OPTIONS = {1: robo_cram.Env.KITCHEN, 2: robo_cram.Env.APARTMENT}
 OBJ_TYPES = {
-    1: robo_cram.Obj.CEREAL,
-    2: robo_cram.Obj.MILK,
-    3: robo_cram.Obj.SPOON,
-    4: robo_cram.Obj.BOWL,
+    1: robo_cram.ObjectType.CEREAL,
+    2: robo_cram.ObjectType.MILK,
+    3: robo_cram.ObjectType.SPOON,
+    4: robo_cram.ObjectType.BOWL,
 }
 COLOURS = {
     1: robo_cram.Colour.RED,
