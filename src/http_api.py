@@ -40,8 +40,8 @@ app.add_middleware(
 
 class RobotCommands:
     @staticmethod
-    def pack_arms():
-        return robo_cram.pack_arms()
+    def park_arms():
+        return robo_cram.park_arms()
 
     @staticmethod
     def adjust_torso(high):
@@ -121,7 +121,7 @@ class RobotCommands:
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    with open("templates/index.html", "r") as f:
+    with open("./src/templates/index.html", "r") as f:
         html_content = f.read()
     return HTMLResponse(content=html_content)
 

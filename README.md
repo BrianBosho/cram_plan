@@ -13,7 +13,7 @@ environment via [PyCRAM](https://pycram.readthedocs.io/en/latest/index.html)
 This software provides the following functions for controlling a PR2 robot and the simulated environment in which it
 resides:
 
-1. Pack the robot's arms
+1. Park the robot's arms
 2. Adjust the robot's torso
 3. Spawn objects in the environment
 4. Move the robot within its environment
@@ -121,7 +121,7 @@ Location areas and their numeric codes:
 ```bash
 $ http GET http://hostname:port/commands
 [
-  "pack_arms",
+  "park_arms",
   "adjust_torso",
   "spawn_object",
   "move_robot",
@@ -136,14 +136,14 @@ $ http GET http://hostname:port/commands
 ]
 ```
 
-### Pack the robot's arms
+### Park the robot's arms
 
 ```bash
 $ http POST http://hostname:port/execute \
-    command=pack_arms
+    command=park_arms
 {
   "status": "success",
-  "message": "Robot arms pack successful"
+  "message": "Robot arms park successful"
 }
 ```
 

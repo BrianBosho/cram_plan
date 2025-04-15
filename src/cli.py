@@ -45,8 +45,8 @@ def init_simulation():
     print(f"{response['status'].upper()}: {response['message']}")
 
 
-def pack_arms():
-    response = robo_cram.pack_arms()
+def park_arms():
+    response = robo_cram.park_arms()
     print(f"{response['status'].upper()}: {response['message']}")
 
 
@@ -308,7 +308,7 @@ def exit_simulation():
 
 def run():
     MENU = {
-        1: pack_arms,
+        1: park_arms,
         2: adjust_torso,
         3: spawn_object,
         4: move_robot,
@@ -331,7 +331,7 @@ def run():
         print(
             """
             \r--- Main Menu ---
-            \r1) Pack robot arms
+            \r1) Park robot arms
             \r2) Adjust robot torso
             \r3) Spawn objects in the environment
             \r4) Move robot

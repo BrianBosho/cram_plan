@@ -175,10 +175,10 @@ def init_simulation(env: Env = Env.KITCHEN) -> Response:
     return Response(status="success", message="Simulation initialisation successful")
 
 
-def pack_arms() -> Response:
+def park_arms() -> Response:
     with simulated_robot:
         ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
-    return Response(status="success", message="Robot arms pack successful")
+    return Response(status="success", message="Robot arms park successful")
 
 
 def adjust_torso(high: bool) -> Response:
