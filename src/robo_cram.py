@@ -56,6 +56,7 @@ class Location(Enum):
 
 
 ROBOT_NAME = "pr2"
+ROBOT_HOME_POSE = Pose([0, 0, 0])
 COLOURS = {
     Colour.RED: (1.0, 0.0, 0.0, 1.0),
     Colour.GREEN: (0.0, 1.0, 0.0, 1.0),
@@ -192,6 +193,36 @@ def adjust_torso(high: bool) -> Response:
     )
 
 
+def get_robot_pose() -> Response:
+    with simulated_robot:
+        try:
+            robot = BelieveObject(names=[ROBOT_NAME]).resolve()
+        except StopIteration:
+            robot = None
+
+    return Response(
+        status="success" if robot is not None else "error",
+        message=f"Robot pose resolve{'' if robot is not None else ' not'} successful",
+        payload={
+            "position": (
+                [robot.pose.position.x, robot.pose.position.y, robot.pose.position.z]
+                if robot is not None
+                else "error"
+            ),
+            "orientation": (
+                [
+                    robot.pose.orientation.x,
+                    robot.pose.orientation.y,
+                    robot.pose.orientation.z,
+                    robot.pose.orientation.w,
+                ]
+                if robot is not None
+                else "error"
+            ),
+        },
+    )
+
+
 def spawn_object(
     obj_type: ObjectType,
     obj_name: str,
@@ -237,7 +268,10 @@ def spawn_object(
     )
 
 
-def move_robot(coordinates: Tuple[float, float, float] = (0, 0, 0)) -> Response:
+def move_robot(
+    coordinates: Tuple[float, float, float] = (0, 0, 0),
+    orientation: Tuple[float, float, float, float] = (0, 0, 0, 1),
+) -> Response:
     try:
         position = [float(i) for i in coordinates]
     except ValueError:
@@ -252,14 +286,30 @@ def move_robot(coordinates: Tuple[float, float, float] = (0, 0, 0)) -> Response:
             message="Coordinates must have exactly 3 real numbers (x,y,z)",
         )
 
+    try:
+        rotation = [float(i) for i in orientation]
+    except ValueError:
+        return Response(
+            status="error",
+            message="Orientation must have exactly 4 real numbers (x,y,z,w)",
+        )
+
+    if len(rotation) != 4:
+        return Response(
+            status="error",
+            message="Orientation must have exactly 4 real numbers (x,y,z,w)",
+        )
+
     with simulated_robot:
         ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
-        NavigateActionDescription(target_location=[Pose(position)]).resolve().perform()
+        NavigateActionDescription(
+            target_location=[Pose(position, rotation)]
+        ).resolve().perform()
 
     return Response(
         status="success",
-        message=f"Robot moved to coordinates {position}",
-        payload={"coordinates": position},
+        message=f"Robot moved to coordinates {position} and orientation {rotation}",
+        payload={"coordinates": position, "orientation": rotation},
     )
 
 
@@ -377,7 +427,6 @@ def look_at_object(obj_name: str) -> Response:
 
 def pick_and_place(obj_name: str, destination: Location) -> Response:
     obj_name = obj_name.lower()
-    robot_home_pose = Pose([0, 0, 0])
 
     with simulated_robot:
         env = BelieveObject(names=[ENVIRONMENTS[environment][0]]).resolve()
@@ -441,7 +490,7 @@ def pick_and_place(obj_name: str, destination: Location) -> Response:
     if not grasped:
         with simulated_robot:
             NavigateActionDescription(
-                target_location=robot_home_pose
+                target_location=ROBOT_HOME_POSE
             ).resolve().perform()
             MoveTorsoActionDescription([TorsoState.LOW]).resolve().perform()
 

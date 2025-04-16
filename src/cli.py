@@ -66,6 +66,13 @@ def adjust_torso():
     print(f"{response['status'].upper()}: {response['message']}")
 
 
+def get_robot_pose():
+    response = robo_cram.get_robot_pose()
+    print(
+        f"{response['status'].upper()}: {response['message']} ({response['payload']})"
+    )
+
+
 def spawn_object():
     print(
         """
@@ -137,7 +144,22 @@ def move_robot():
         except ValueError:
             coordinates = []
 
-    response = robo_cram.move_robot(coordinates)
+    orientation_str = input(
+        "Enter the orientation (as quaternions) to move the robot to using the format x,y,z,w: "
+    ).strip()
+    orientation = orientation_str.split(",")
+
+    while True:
+        while len(orientation) != 4:
+            orientation_str = input("Invalid entry, re-try again: ").strip()
+            orientation = orientation_str.split(",")
+        try:
+            orientation = [float(i) for i in orientation]
+            break
+        except ValueError:
+            orientation = []
+
+    response = robo_cram.move_robot(coordinates, orientation)
     print(f"{response['status'].upper()}: {response['message']}")
 
 
@@ -310,17 +332,18 @@ def run():
     MENU = {
         1: park_arms,
         2: adjust_torso,
-        3: spawn_object,
-        4: move_robot,
-        5: is_object_type_in_environment,
-        6: is_object_in_environment,
-        7: is_object_type_in_location,
-        8: is_object_in_location,
-        9: look_at_object,
-        10: pick_and_place,
-        11: capture_image,
-        12: get_objects_in_robot_view,
-        13: exit_simulation,
+        3: get_robot_pose,
+        4: spawn_object,
+        5: move_robot,
+        6: is_object_type_in_environment,
+        7: is_object_in_environment,
+        8: is_object_type_in_location,
+        9: is_object_in_location,
+        10: look_at_object,
+        11: pick_and_place,
+        12: capture_image,
+        13: get_objects_in_robot_view,
+        14: exit_simulation,
     }
     exit_choice = len(MENU)
 
@@ -333,17 +356,18 @@ def run():
             \r--- Main Menu ---
             \r1) Park robot arms
             \r2) Adjust robot torso
-            \r3) Spawn objects in the environment
-            \r4) Move robot
-            \r5) Find if an object of some type is in the environment
-            \r6) Find if an object with some name is in the environment
-            \r7) Find if an object of some type is in some location
-            \r8) Find if an object with some name is in some location
-            \r9) Look at an object
-            \r10) Pick an object and place it elsewhere
-            \r11) Capture an image using robot's camera
-            \r12) Get objects in robot's view
-            \r13) Exit simulation
+            \r3) Get robot pose
+            \r4) Spawn objects in the environment
+            \r5) Move robot
+            \r6) Find if an object of some type is in the environment
+            \r7) Find if an object with some name is in the environment
+            \r8) Find if an object of some type is in some location
+            \r9) Find if an object with some name is in some location
+            \r10) Look at an object
+            \r11) Pick an object and place it elsewhere
+            \r12) Capture an image using robot's camera
+            \r13) Get objects in robot's view
+            \r14) Exit simulation
             """
         )
 

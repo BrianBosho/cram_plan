@@ -15,17 +15,18 @@ resides:
 
 1. Park the robot's arms
 2. Adjust the robot's torso
-3. Spawn objects in the environment
-4. Move the robot within its environment
-5. Find if an object of some type is in the environment
-6. Find if an object with some name is in the environment
-7. Find if an object of some type is in some location of the environment
-8. Find if an object with some name is in some location of the environment
-9. Look at an object
-10. Pick an object and place it elsewhere
-11. Capture an image using the robot's camera
-12. Get a list of objects in the robot's field of view
-13. Exit the simulation
+3. Get the robot's pose
+4. Spawn objects in the environment
+5. Move the robot within its environment
+6. Find if an object of some type is in the environment
+7. Find if an object with some name is in the environment
+8. Find if an object of some type is in some location of the environment
+9. Find if an object with some name is in some location of the environment
+10. Look at an object
+11. Pick an object and place it elsewhere
+12. Capture an image using the robot's camera
+13. Get a list of objects in the robot's field of view
+14. Exit the simulation
 
 ## Components
 
@@ -76,10 +77,10 @@ out in `.env.sample`)
 | SIM_ENV           | kitchen             | Simulation environment (kitchen or apartment)     |
 
 1. Run the REST API application: `./python3 src/http_api.py`
-2. Access the web page to control the robot on `http://hostname:port`
+2. Access the web page to control the robot on `http://127.0.0.1:8001`
 3. Access the REST API endoints (further details on the API are listed in later sections of this document):
-    - List all supported commands: `http://hostname:port/commands`
-    - Execute a specific command: `http://hostname:port/execute`
+    - List all supported commands: `http://127.0.0.1:8001/commands`
+    - Execute a specific command: `http://127.0.0.1:8001/execute`
 
 ## API Reference
 
@@ -119,7 +120,7 @@ Location areas and their numeric codes:
 ### List all supported API endpoints
 
 ```bash
-$ http GET http://hostname:port/commands
+$ http GET http://127.0.0.1:8001/commands
 [
   "park_arms",
   "adjust_torso",
@@ -139,8 +140,7 @@ $ http GET http://hostname:port/commands
 ### Park the robot's arms
 
 ```bash
-$ http POST http://hostname:port/execute \
-    command=park_arms
+$ http POST http://127.0.0.1:8001/execute command=park_arms
 {
   "status": "success",
   "message": "Robot arms park successful"
@@ -150,21 +150,31 @@ $ http POST http://hostname:port/execute \
 ### Adjust the robot's torso
 
 ```bash
-$ http POST http://hostname:port/execute \
-    command=adjust_torso \
-    params:='{"high": true}'
+$ http POST http://127.0.0.1:8001/execute command=adjust_torso params:='{"high": true}'
 {
   "status": "success",
   "message": "Robot torso move to high successful"
 }
 ```
 
+### Get the robot's pose
+
+```bash
+$ http POST http://127.0.0.1:8001/execute command=get_robot_pose
+{
+  "status": "success",
+  "message": "Robot pose resolve successful",
+  "payload" {
+    "position": [0.0, 0.0, 0.0],
+    "orientation" [0.0, 0.0, 0.0, 1.0]
+  }
+}
+```
+
 ### Spawn objects in the environment
 
 ```bash
-$ http POST http://hostname:port/execute \
-    command=spawn_object \
-    params:='{"obj_type": 0, "obj_name": "cereal1", "coordinates": [1.4, 1.0, 0.9], "colour": 0}'
+$ http POST http://127.0.0.1:8001/execute command=spawn_object params:='{"obj_type": 0, "obj_name": "cereal1", "coordinates": [1.4, 1.0, 0.9], "colour": 0}'
 {
   "status": "success",
   "message": "Object 'cereal1' created successfully",
@@ -183,14 +193,13 @@ $ http POST http://hostname:port/execute \
 ### Move the robot within its environment
 
 ```bash
-$ http POST http://hostname:port/execute \
-    command=move_robot \
-    params:='{"coordinates": [0.75, 1, 0]}'
+$ http POST http://127.0.0.1:8001/execute command=move_robot params:='{"coordinates": [0.75, 1, 0], "orientation": [0, 0, 0.7071, 0.7071]}'
 {
   "status": "success",
-  "message": "Robot moved to coordinates [0.75, 1.0, 0.0]",
+  "message": "Robot moved to coordinates [0.75, 1.0, 0.0] and orientation [0.0, 0.0, 0.7071, 0.7071]",
   "payload": {
-    "coordinates": [0.75, 1.0, 0.0]
+    "coordinates": [0.75, 1.0, 0.0],
+    "orientation": [0.0, 0.0, 0.7071, 0.7071]
   }
 }
 ```
@@ -198,9 +207,7 @@ $ http POST http://hostname:port/execute \
 ### Find if an object of some type is in the environment
 
 ```bash
-$ http POST http://hostname:port/execute \
-    command=is_object_type_in_environment \
-    params:='{"obj_type": 0}'
+$ http POST http://127.0.0.1:8001/execute command=is_object_type_in_environment params:='{"obj_type": 0}'
 {
   "status": "success",
   "message": "1 object of type 'Cereal' is in the environment",
@@ -218,9 +225,7 @@ $ http POST http://hostname:port/execute \
 ### Find if an object with some name is in the environment
 
 ```bash
-$ http POST http://hostname:port/execute \
-    command=is_object_in_environment \
-    params:='{"obj_name": "cereal1"}'
+$ http POST http://127.0.0.1:8001/execute command=is_object_in_environment params:='{"obj_name": "cereal1"}'
 {
   "status": "success", "message":
   "Object 'cereal1' is in the environment"
@@ -230,27 +235,21 @@ $ http POST http://hostname:port/execute \
 ### Find if an object of some type is in some location of the environment
 
 ```bash
-$ http POST http://hostname:port/execute \
-    command=is_object_type_in_location \
-    params:='{"obj_type": 0, "location": 0}'
+$ http POST http://127.0.0.1:8001/execute command=is_object_type_in_location params:='{"obj_type": 0, "location": 0}'
 TODO: command has a bug that needs to be rectified
 ```
 
 ### Find if an object with some name is in some location of the environment
 
 ```bash
-$ http POST http://hostname:port/execute \
-    command=is_object_in_location \
-    params:='{"obj_name": "cereal1", "location": 0}'
+$ http POST http://127.0.0.1:8001/execute command=is_object_in_location params:='{"obj_name": "cereal1", "location": 0}'
 TODO: command has a bug that needs to be rectified
 ```
 
 ### Look at an object
 
 ```bash
-$ http POST http://hostname:port/execute \
-    command=look_at_object \
-    params:='{"obj_name": "cereal1"}'
+$ http POST http://127.0.0.1:8001/execute command=look_at_object params:='{"obj_name": "cereal1"}'
 {
   "status": "success",
   "message": "Robot is now looking at 'cereal1'"
@@ -260,18 +259,14 @@ $ http POST http://hostname:port/execute \
 ### Pick an object and place it elsewhere
 
 ```bash
-$ http POST http://hostname:port/execute \
-    command=pick_and_place \
-    params:='{"obj_name": "cereal1", "destination": 0}'
+$ http POST http://127.0.0.1:8001/execute command=pick_and_place params:='{"obj_name": "cereal1", "destination": 0}'
 TODO: command has a bug that needs to be rectified
 ```
 
 ### Capture an image using the robot's camera
 
 ```bash
-$ http POST http://hostname:port/execute \
-    command=capture_image \
-    params:='{"target_distance": 2.0}'
+$ http POST http://127.0.0.1:8001/execute command=capture_image params:='{"target_distance": 2.0}'
 {
   "status": "success",
   "message": "Image capture successful",
@@ -286,9 +281,7 @@ $ http POST http://hostname:port/execute \
 ### Get a list of objects in the robot's field of view
 
 ```bash
-$ http POST http://hostname:port/execute \
-    command=get_objects_in_robot_view \
-    params:='{"target_distance": 2.0, "min_pixel_count": 50}'
+$ http POST http://127.0.0.1:8001/execute command=get_objects_in_robot_view params:='{"target_distance": 2.0, "min_pixel_count": 50}'
 TODO: command has a bug that needs to be rectified
 ```
 

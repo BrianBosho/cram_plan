@@ -48,6 +48,10 @@ class RobotCommands:
         return robo_cram.adjust_torso(high)
 
     @staticmethod
+    def get_robot_pose():
+        return robo_cram.get_robot_pose()
+
+    @staticmethod
     def spawn_object(obj_type, obj_name, coordinates, colour):
         return robo_cram.spawn_object(
             robo_cram.ObjectType(obj_type),
@@ -57,8 +61,8 @@ class RobotCommands:
         )
 
     @staticmethod
-    def move_robot(coordinates):
-        return robo_cram.move_robot(coordinates)
+    def move_robot(coordinates, orientation):
+        return robo_cram.move_robot(coordinates, orientation)
 
     @staticmethod
     def is_object_type_in_environment(obj_type):
