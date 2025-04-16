@@ -15,11 +15,103 @@ from pycram.world_concepts.world_object import Object
 from pycram.datastructures.enums import ObjectType
 from pycrap.ontologies import Milk, Cereal, Spoon, Bowl
 from utils.color_wrapper import ColorWrapper
+import numpy as np
+import base64
+import io
+from PIL import Image
+import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize
+from pycram.robot_description import RobotDescription
+from pycram.datastructures.enums import Frame
+from io import BytesIO
+
 
 # Import from environment but avoid initialization side effects
 def get_world_safely():
     from environment import get_world
     return get_world()
+
+def calculate_object_distances(source_object=None, target_objects=None, exclude_types=None, world=None):
+    """
+    Calculate distances between objects in the world.
+    
+    Parameters:
+    -----------
+    source_object : str or None
+        Name of source object. If None, will calculate distances between all pairs.
+    target_objects : list or None
+        List of target object names. If None, will use all objects.
+    exclude_types : list or None
+        List of object types to exclude (like 'floor', 'wall', etc.)
+        
+    Returns:
+    --------
+    dict
+        Dictionary of distances between objects
+    """
+    # global world
+    if world is None:
+        print("Cannot calculate distances because the world is not initialized.")
+        return {}
+    
+    # Default exclusion list if not provided
+    if exclude_types is None:
+        exclude_types = ['floor', 'wall', 'ceiling', 'ground']
+    
+    # Get all objects or filter by provided names
+    all_objects = world.objects
+    filtered_objects = []
+    
+    for obj in all_objects:
+        # Skip excluded types
+        if any(exclude_type in obj.name.lower() for exclude_type in exclude_types):
+            continue
+        filtered_objects.append(obj)
+    
+    # If target objects specified, filter to only those
+    if target_objects:
+        filtered_objects = [obj for obj in filtered_objects if obj.name in target_objects]
+    
+    # If source object specified, only measure from that object
+    if source_object:
+        source = world.get_object_by_name(source_object)
+        if source is None:
+            print(f"Source object '{source_object}' not found.")
+            return {}
+        
+        distances = {}
+        source_pos = source.get_position()
+        
+        for obj in filtered_objects:
+            if obj.name == source_object:
+                continue
+                
+            obj_pos = obj.get_position()
+            dist = np.sqrt((source_pos.x - obj_pos.x)**2 + 
+                          (source_pos.y - obj_pos.y)**2 + 
+                          (source_pos.z - obj_pos.z)**2)
+            
+            distances[obj.name] = dist
+        
+        return distances
+    
+    # Otherwise calculate all pairwise distances
+    else:
+        distances = {}
+        
+        # Get all unique pairs of objects
+        for obj1, obj2 in itertools.combinations(filtered_objects, 2):
+            pos1 = obj1.get_position()
+            pos2 = obj2.get_position()
+            
+            dist = np.sqrt((pos1.x - pos2.x)**2 + 
+                          (pos1.y - pos2.y)**2 + 
+                          (pos1.z - pos2.z)**2)
+            
+            key = f"{obj1.name}-to-{obj2.name}"
+            distances[key] = dist
+        
+        return distances
 
 def move_robot(coordinates=None):
     """
@@ -507,6 +599,184 @@ def spawn_objects(object_choice=None, coordinates=None, color=None):
         except Exception as e:
             return {"status": "error", "message": f"Error creating object: {str(e)}"}
             
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
+
+
+def capture_camera_image(world, display=False, save_path=None, target_distance=2.0):
+    """
+    Capture an image from the robot's camera.
+    
+    Parameters:
+    -----------
+    display : bool
+        Whether to display the image (default: True)
+    save_path : str or None
+        Path to save the image, if None the image is not saved (default: None)
+    target_distance : float
+        Distance in meters to the target point (default: 2.0)
+        
+    Returns:
+    --------
+    tuple
+        (rgb_image, depth_image, segmentation_mask) - The RGB, depth, and segmentation images
+    """
+    
+    if world is None:
+        print("Cannot capture image because the world is not initialized.")
+        return None
+    
+    # Get the camera configuration
+    robot = world.robot
+    camera_link_name = RobotDescription.current_robot_description.get_camera_link()
+    camera_link = robot.get_link(camera_link_name)
+    camera_pose = camera_link.pose
+    camera_axis = RobotDescription.current_robot_description.get_default_camera().front_facing_axis
+    
+    # Create a target point in front of the camera
+    target = np.array(camera_axis) * target_distance
+    target_pose = Pose(target, frame=camera_link.tf_frame)
+    target_pose = robot.local_transformer.transform_pose(target_pose, Frame.Map.value)
+    
+    # Get the images (RGB, depth, segmentation)
+    images = world.get_images_for_target(target_pose, camera_pose)
+    rgb_image = images[0]  # RGB image is typically the first returned image
+    depth_image = images[1]  # Depth image is typically the second returned image
+    segmentation_mask = images[2]  # Segmentation mask is at index 2
+    
+    # Display the RGB image if requested
+    if display:
+        plt.figure(figsize=(10, 8))
+        plt.imshow(rgb_image)
+        plt.axis('off')
+        plt.title('Robot Camera View')
+        plt.tight_layout()
+        
+        # Save the image if a path is provided
+        if save_path:
+            plt.savefig(save_path)
+        
+        plt.show()
+    
+    # Save without displaying if needed
+    elif save_path:
+        plt.figure(figsize=(10, 8))
+        plt.imshow(rgb_image)
+        plt.axis('off')
+        plt.title('Robot Camera View')
+        plt.tight_layout()
+        plt.savefig(save_path)
+        plt.close()
+    
+    return rgb_image, depth_image, segmentation_mask
+
+def demo_camera():
+    """
+    Demonstrate camera functionality by capturing and displaying an image from the robot's camera.
+    """
+    global world
+    if world is None:
+        print("Cannot demonstrate camera because the world is not initialized.")
+        return
+
+    print("Moving robot to position with good view...")
+    with simulated_robot:
+        # Position robot for a good view
+        park_action = ParkArmsAction([Arms.BOTH]).resolve()
+        park_action.perform()
+        
+        move_torso = MoveTorsoAction([TorsoState.HIGH]).resolve()
+        move_torso.perform()
+        
+        # You can add navigation here if needed to get a better view
+        
+        print("Capturing camera image...")
+        images = capture_camera_image(display=True, save_path="robot_view.png")
+        if images:
+            print("Image captured successfully!")
+            return images
+        else:
+            print("Failed to capture image.")
+            return None
+
+def get_robot_camera_images(target_distance=2.0, world=None):
+    """
+    Capture images from the robot's camera and return them as base64-encoded strings.
+    
+    Args:
+        target_distance (float): Distance in meters to the target point
+        
+    Returns:
+        dict: Result with encoded images
+    """
+    try:
+        # Convert target_distance to float if provided
+        if target_distance is not None:
+            target_distance = float(target_distance)
+        else:
+            target_distance = 2.0  # Default value
+            
+        # Import the capture function
+        from robot_actions_api import capture_camera_image
+        
+        # Capture images without displaying them
+        rgb_image, depth_image, segmentation_mask = capture_camera_image(
+            display=False, 
+            save_path=None,
+            target_distance=target_distance,
+            world=world
+        )
+        
+        if rgb_image is None:
+            return {"status": "error", "message": "Failed to capture camera images"}
+        
+        # Convert images to base64 strings
+        def encode_image(img):
+            if img is None:
+                return None
+                
+            # For depth images, normalize and colormap for better visualization
+            if len(img.shape) == 2:  # It's a depth image
+                plt.figure(figsize=(10, 8))
+                plt.imshow(img, cmap='viridis')
+                plt.axis('off')
+                plt.tight_layout()
+                
+                buf = BytesIO()
+                plt.savefig(buf, format='png')
+                plt.close()
+                buf.seek(0)
+                img_str = base64.b64encode(buf.read()).decode('utf-8')
+                return img_str
+            
+            # For RGB or segmentation images
+            buf = BytesIO()
+            plt.figure(figsize=(10, 8))
+            plt.imshow(img)
+            plt.axis('off')
+            plt.tight_layout()
+            plt.savefig(buf, format='png')
+            plt.close()
+            buf.seek(0)
+            img_str = base64.b64encode(buf.read()).decode('utf-8')
+            return img_str
+        
+        # Encode all three images
+        color_b64 = encode_image(rgb_image)
+        depth_b64 = encode_image(depth_image)
+        segmentation_b64 = encode_image(segmentation_mask)
+        
+        return {
+            "status": "success",
+            "message": "Camera images captured successfully",
+            "images": {
+                "color_image": color_b64,
+                "depth_image": depth_b64,
+                "segmentation_mask": segmentation_b64
+            }
+        }
     except Exception as e:
         import traceback
         traceback.print_exc()

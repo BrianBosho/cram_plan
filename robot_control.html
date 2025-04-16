@@ -202,26 +202,8 @@
         </form>
     </div>
 
-    <!-- Look for Object -->
-    <div class="command-panel">
-        <h2>Look for Object</h2>
-        <form id="lookForForm">
-            <label for="lookForObjectName">Object Name:</label>
-            <input type="text" id="lookForObjectName" value="cup1">
-            
-            <button type="submit">Look for Object</button>
-        </form>
-    </div>
-
-    <!-- Unpack Arms -->
-    <div class="command-panel">
-        <h2>Unpack Arms</h2>
-        <form id="unpackArmsForm">
-            <button type="submit">Unpack Arms</button>
-        </form>
-    </div>
-
-    <!-- Detect Object -->
+ 
+     <!-- Detect Object -->
     <div class="command-panel">
         <h2>Detect Object</h2>
         <form id="detectObjectForm">
@@ -255,37 +237,9 @@
         </form>
     </div>
 
-    <!-- Kitchen Info -->
-    <div class="command-panel">
-        <h2>Kitchen Environment Info</h2>
-        <form id="kitchenInfoForm">
-            <button type="submit">Get Kitchen Info</button>
-        </form>
-    </div>
+  
 
-    <!-- Camera Info -->
-    <div class="command-panel">
-        <h2>Camera Info</h2>
-        <form id="cameraInfoForm">
-            <label for="cameraName">Camera Name:</label>
-            <select id="cameraName">
-                <option value="head_camera">Head Camera</option>
-                <option value="kinect">Kinect</option>
-                <option value="wide_stereo">Wide Stereo</option>
-            </select>
-            
-            <button type="submit">Get Camera Info</button>
-        </form>
-    </div>
-
-    <!-- Get Kitchen Table Height -->
-    <div class="command-panel">
-        <h2>Get Kitchen Table Height</h2>
-        <form id="tableHeightForm">
-            <button type="submit">Get Table Height</button>
-        </form>
-        <div id="tableHeightResult" class="result-display"></div>
-    </div>
+   
 
     <!-- Robot Camera View -->
     <div class="command-panel" id="camera-panel">
@@ -294,10 +248,10 @@
             <label for="target-distance">Target Distance (meters):</label>
             <input type="number" id="target-distance" value="2.0" min="0.1" max="10.0" step="0.1">
             <button id="capture-btn">Capture Images</button>
-            <div id="error-message" class="error-message" style="display: none;"></div>
+            <div id="error-message" class="error-message" style="display: none; color: red; margin-top: 10px;"></div>
         </div>
         
-        <div class="camera-views" style="display: flex; flex-wrap: wrap; justify-content: space-around; gap: 20px;">
+        <div class="camera-views" style="display: flex; flex-wrap: wrap; justify-content: space-around; gap: 20px; margin-top: 20px;">
             <div class="camera-view" style="flex: 1; min-width: 200px; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
                 <h3>Color Image</h3>
                 <div id="color-loading" class="loading" style="text-align: center; font-style: italic; color: #888;">No image available</div>
@@ -628,104 +582,87 @@
             });
         });
 
-        // Camera view functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const captureBtn = document.getElementById('capture-btn');
-            const targetDistanceInput = document.getElementById('target-distance');
-            const errorMessageDiv = document.getElementById('error-message');
+        // Camera functionality
+        const captureBtn = document.getElementById('capture-btn');
+        const targetDistanceInput = document.getElementById('target-distance');
+        const colorImage = document.getElementById('color-image');
+        const depthImage = document.getElementById('depth-image');
+        const segmentationImage = document.getElementById('segmentation-image');
+        const colorLoading = document.getElementById('color-loading');
+        const depthLoading = document.getElementById('depth-loading');
+        const segmentationLoading = document.getElementById('segmentation-loading');
+        const errorMessageDiv = document.getElementById('error-message');
+
+        // Add event listener to the capture button
+        captureBtn.addEventListener('click', function() {
+            // Show loading indicators
+            colorImage.style.display = 'none';
+            depthImage.style.display = 'none';
+            segmentationImage.style.display = 'none';
+            colorLoading.style.display = 'block';
+            depthLoading.style.display = 'block';
+            segmentationLoading.style.display = 'block';
+            errorMessageDiv.style.display = 'none';
             
-            // Image elements
-            const colorImage = document.getElementById('color-image');
-            const depthImage = document.getElementById('depth-image');
-            const segmentationImage = document.getElementById('segmentation-image');
+            // Get the target distance
+            const targetDistance = targetDistanceInput.value;
             
-            // Loading elements
-            const colorLoading = document.getElementById('color-loading');
-            const depthLoading = document.getElementById('depth-loading');
-            const segmentationLoading = document.getElementById('segmentation-loading');
-            
-            captureBtn.addEventListener('click', function() {
-                // Show loading state
-                setLoadingState(true);
-                
-                // Clear any previous error messages
-                errorMessageDiv.style.display = 'none';
-                errorMessageDiv.textContent = '';
-                
-                // Get target distance
-                const targetDistance = targetDistanceInput.value;
-                
-                // Make API request
-                fetch(`/api/camera-images?target_distance=${targetDistance}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            // Update images
-                            updateImages(data.images);
-                        } else {
-                            // Show error
-                            showCameraError(data.message || 'Failed to retrieve camera images');
-                        }
-                    })
-                    .catch(err => {
-                        showCameraError('API request failed: ' + err.message);
-                    })
-                    .finally(() => {
-                        setLoadingState(false);
-                    });
-            });
-            
-            function updateImages(images) {
-                // Update color image
-                if (images.color_image) {
-                    colorImage.src = 'data:image/png;base64,' + images.color_image;
-                    colorImage.style.display = 'block';
-                    colorLoading.style.display = 'none';
-                } else {
-                    colorImage.style.display = 'none';
-                    colorLoading.style.display = 'block';
-                }
-                
-                // Update depth image
-                if (images.depth_image) {
-                    depthImage.src = 'data:image/png;base64,' + images.depth_image;
-                    depthImage.style.display = 'block';
-                    depthLoading.style.display = 'none';
-                } else {
-                    depthImage.style.display = 'none';
-                    depthLoading.style.display = 'block';
-                }
-                
-                // Update segmentation mask
-                if (images.segmentation_mask) {
-                    segmentationImage.src = 'data:image/png;base64,' + images.segmentation_mask;
-                    segmentationImage.style.display = 'block';
-                    segmentationLoading.style.display = 'none';
-                } else {
-                    segmentationImage.style.display = 'none';
-                    segmentationLoading.style.display = 'block';
-                }
-            }
-            
-            function showCameraError(message) {
-                errorMessageDiv.textContent = message;
-                errorMessageDiv.style.display = 'block';
-            }
-            
-            function setLoadingState(isLoading) {
-                captureBtn.disabled = isLoading;
-                
-                if (isLoading) {
-                    colorLoading.textContent = 'Loading...';
-                    depthLoading.textContent = 'Loading...';
-                    segmentationLoading.textContent = 'Loading...';
-                } else {
-                    colorLoading.textContent = 'No image available';
-                    depthLoading.textContent = 'No image available';
-                    segmentationLoading.textContent = 'No image available';
-                }
-            }
+            // Call the API to get camera images
+            callRobotApi('get_camera_images', { target_distance: targetDistance })
+                .then(response => {
+                    if (response.status === 'success' && response.images) {
+                        updateImages(response.images);
+                    } else {
+                        showCameraError(response.message || 'Failed to capture camera images');
+                    }
+                })
+                .catch(error => {
+                    showCameraError('Error: ' + error.message);
+                });
         });
+
+        function updateImages(images) {
+            // Update color image
+            if (images.color_image) {
+                colorImage.src = 'data:image/png;base64,' + images.color_image;
+                colorImage.style.display = 'block';
+                colorLoading.style.display = 'none';
+            } else {
+                colorImage.style.display = 'none';
+                colorLoading.textContent = 'Color image not available';
+                colorLoading.style.display = 'block';
+            }
+            
+            // Update depth image
+            if (images.depth_image) {
+                depthImage.src = 'data:image/png;base64,' + images.depth_image;
+                depthImage.style.display = 'block';
+                depthLoading.style.display = 'none';
+            } else {
+                depthImage.style.display = 'none';
+                depthLoading.textContent = 'Depth image not available';
+                depthLoading.style.display = 'block';
+            }
+            
+            // Update segmentation mask
+            if (images.segmentation_mask) {
+                segmentationImage.src = 'data:image/png;base64,' + images.segmentation_mask;
+                segmentationImage.style.display = 'block';
+                segmentationLoading.style.display = 'none';
+            } else {
+                segmentationImage.style.display = 'none';
+                segmentationLoading.textContent = 'Segmentation mask not available';
+                segmentationLoading.style.display = 'block';
+            }
+        }
+
+        function showCameraError(message) {
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.style.display = 'block';
+            colorLoading.style.display = 'none';
+            depthLoading.style.display = 'none';
+            segmentationLoading.style.display = 'none';
+        }
     </script>
 </body>
 </html> 
