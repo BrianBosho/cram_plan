@@ -71,7 +71,8 @@ from robot_actions_api import (
     robot_perceive,
     transport_object,
     demo_camera,
-    get_robot_camera_images
+    get_robot_camera_images,
+    calculate_object_distances
 )
 
 # from camera import get_camera_images    
@@ -124,6 +125,9 @@ async def execute_command(data: dict = Body(...)):
         elif command == "get_camera_images":
             target_distance = params.get("target_distance", 2.0)
             result = get_robot_camera_images(target_distance, world)
+            return result
+        elif command == "calculate_object_distances":
+            result = calculate_object_distances(**params, world=world)
             return result
         else:
             return {"status": "error", "message": f"Unknown command: {command}"}

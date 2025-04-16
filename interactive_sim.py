@@ -349,8 +349,12 @@ def demo_camera():
         images = capture_camera_image(display=True, save_path="robot_view.png")
         if images:
             print("Image captured successfully!")
+            return images
         else:
             print("Failed to capture image.")
+            return None
+
+            
 
 def demo_advanced_camera_functions():
     """
