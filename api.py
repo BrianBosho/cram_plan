@@ -69,8 +69,6 @@ from robot_actions_api import (
     move_robot,
     pickup_and_place,
     robot_perceive,
-    look_for_object,
-    detect_object,
     transport_object
 )
 
@@ -118,15 +116,7 @@ async def execute_command(data: dict = Body(...)):
         elif command == "robot_perceive":
             result = robot_perceive(**params)
             return result
-        elif command == "look_for_object":
-            result = look_for_object(**params)
-            return result
-        elif command == "unpack_arms":
-            result = unpack_arms()
-            return result
-        elif command == "detect_object":
-            result = detect_object(**params)
-            return result
+        
         elif command == "transport_object":
             result = transport_object(**params)
             return result
@@ -146,9 +136,6 @@ async def list_commands():
             "move_robot",
             "pickup_and_place",
             "robot_perceive",
-            "look_for_object",
-            "unpack_arms", 
-            "detect_object",
             "transport_object"
         ]
     }
