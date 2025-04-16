@@ -849,29 +849,6 @@ def look_for_object(object_name=None):
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
-def unpack_arms():
-    """
-    Unpack the robot's arms without interactive prompts.
-    
-    Returns:
-        dict: Result of the operation
-    """
-    try:
-        with simulated_robot:
-            # Create unpacking action
-            unpack_action = UnpackAction().resolve()
-            
-            print("API: Unpacking arms...")
-            unpack_action.perform()
-            
-        return {
-            "status": "success",
-            "message": "Robot arms unpacked successfully"
-        }
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return {"status": "error", "message": str(e)}
 
 def detect_object(object_type=None, detection_area=None):
     """

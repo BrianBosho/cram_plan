@@ -70,12 +70,11 @@ from robot_actions_api import (
     pickup_and_place,
     robot_perceive,
     look_for_object,
-    unpack_arms,
     detect_object,
     transport_object
 )
 
-from camera import get_camera_images    
+# from camera import get_camera_images    
 
 # Static files mounting - if we have a 'static' directory
 if os.path.exists('static'):
