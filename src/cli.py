@@ -25,7 +25,6 @@ COLOURS = {
 LOCATIONS = {
     1: robo_cram.Location.KITCHEN_ISLAND,
     2: robo_cram.Location.SINK_AREA,
-    3: robo_cram.Location.TABLE,
 }
 
 
@@ -104,7 +103,7 @@ def spawn_object():
             coordinates = [float(i) for i in coordinates]
             break
         except ValueError:
-            pass
+            coordinates = []
 
     print(
         """
@@ -209,7 +208,6 @@ def is_object_type_in_location():
         \nSelect a location to search for the object in:
         \n1) Kitchen island
         \n2) Sink area
-        \n3) Table
         """
     )
     perception_location = input("Enter your choice: ").strip()
@@ -232,7 +230,6 @@ def is_object_in_location():
         \nSelect a location to search for the object in:
         \n1) Kitchen island
         \n2) Sink area
-        \n3) Table
         """
     )
     perception_location = input("Enter your choice: ").strip()
@@ -254,7 +251,31 @@ def look_at_object():
     print(f"{response['status'].upper()}: {response['message']}")
 
 
-def pick_and_place():
+def pick_and_place_coordinates():
+    obj_name = input("Enter the name of the object to pick: ").strip()
+    while len(obj_name) == 0:
+        obj_name = input("You must enter a name: ").strip()
+
+    destination_coordinates_str = input(
+        "Enter the coordinates to place the object at using the format x,y,z: "
+    ).strip()
+    destination_coordinates = destination_coordinates_str.split(",")
+
+    while True:
+        while len(destination_coordinates) != 3:
+            destination_coordinates_str = input("Invalid entry, re-try again: ").strip()
+            destination_coordinates = destination_coordinates_str.split(",")
+        try:
+            destination_coordinates = [float(i) for i in destination_coordinates]
+            break
+        except ValueError:
+            destination_coordinates = []
+
+    response = robo_cram.pick_and_place_coordinates(obj_name, destination_coordinates)
+    print(f"{response['status'].upper()}: {response['message']}")
+
+
+def pick_and_place_location():
     obj_name = input("Enter the name of the object to pick: ").strip()
     while len(obj_name) == 0:
         obj_name = input("You must enter a name: ").strip()
@@ -264,14 +285,15 @@ def pick_and_place():
         \nSelect a location to place the object:
         \n1) Kitchen island
         \n2) Sink area
-        \n3) Table
         """
     )
     destination_location = input("Enter your choice: ").strip()
     if len(destination_location) == 0 or int(destination_location) not in LOCATIONS:
         destination_location = input("Invalid choice, enter your choice: ").strip()
 
-    response = robo_cram.pick_and_place(obj_name, LOCATIONS[int(destination_location)])
+    response = robo_cram.pick_and_place_location(
+        obj_name, LOCATIONS[int(destination_location)]
+    )
     print(f"{response['status'].upper()}: {response['message']}")
 
 
@@ -352,10 +374,11 @@ def run():
         8: is_object_type_in_location,
         9: is_object_in_location,
         10: look_at_object,
-        11: pick_and_place,
-        12: capture_image,
-        13: get_objects_in_robot_view,
-        14: exit_simulation,
+        11: pick_and_place_coordinates,
+        12: pick_and_place_location,
+        13: capture_image,
+        14: get_objects_in_robot_view,
+        15: exit_simulation,
     }
     exit_choice = len(MENU)
 
@@ -376,10 +399,11 @@ def run():
             \r8) Find if an object of some type is in some location
             \r9) Find if an object with some name is in some location
             \r10) Look at an object
-            \r11) Pick an object and place it elsewhere
-            \r12) Capture an image using robot's camera
-            \r13) Get objects in robot's view
-            \r14) Exit simulation
+            \r11) Pick an object and place it at a specific coordinate
+            \r12) Pick an object and place it at a specific location
+            \r13) Capture an image using robot's camera
+            \r14) Get objects in robot's view
+            \r15) Exit simulation
             """
         )
 

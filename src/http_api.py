@@ -86,8 +86,14 @@ class RobotCommands:
         return robo_cram.look_at_object(obj_name)
 
     @staticmethod
-    def pick_and_place(obj_name, destination):
-        return robo_cram.pick_and_place(obj_name, robo_cram.Location(destination))
+    def pick_and_place_coordinates(obj_name, destination):
+        return robo_cram.pick_and_place_coordinates(obj_name, destination)
+
+    @staticmethod
+    def pick_and_place_location(obj_name, destination):
+        return robo_cram.pick_and_place_location(
+            obj_name, robo_cram.Location(destination)
+        )
 
     @staticmethod
     def capture_image(target_distance):
