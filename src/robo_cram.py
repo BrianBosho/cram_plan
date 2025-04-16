@@ -573,12 +573,15 @@ def get_objects_in_robot_view(
         if pixel_count < min_pixel_count:
             continue
 
-        obj = world.get_object_by_id(idx)
+        try:
+            obj = world.get_object_by_id(idx)
+        except IndexError:
+            obj = None
+
         if obj is not None:
-            visible_objects[idx] = {
+            visible_objects[int(idx)] = {
                 "name": obj.name,
-                "type1": str(type(obj).__name__),
-                "type2": str(type(obj)),
+                "type": str(type(obj).__name__),
                 "pixel_count": int(pixel_count),
             }
 

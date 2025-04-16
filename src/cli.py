@@ -318,8 +318,20 @@ def get_objects_in_robot_view():
     while len(target_distance) == 0:
         target_distance = input("You must enter a target distance: ").strip()
 
-    response = robo_cram.get_objects_in_robot_view(float(target_distance))
-    [print(f"{k}: {v}") for k, v in response["payload"]]
+    min_pixel_count = input(
+        "Enter the minimum number of pixels an object has to have for it to be detected: "
+    ).strip()
+    while True:
+        try:
+            _ = int(min_pixel_count)
+            break
+        except ValueError:
+            min_pixel_count = input("You must enter an integer: ").strip()
+
+    response = robo_cram.get_objects_in_robot_view(
+        float(target_distance), int(min_pixel_count)
+    )
+    [print(f"{k}: {v}") for k, v in response["payload"].items()]
     print(f"{response['status'].upper()}: {response['message']}")
 
 

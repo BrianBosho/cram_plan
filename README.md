@@ -282,7 +282,33 @@ $ http POST http://127.0.0.1:8001/execute command=capture_image params:='{"targe
 
 ```bash
 $ http POST http://127.0.0.1:8001/execute command=get_objects_in_robot_view params:='{"target_distance": 2.0, "min_pixel_count": 50}'
-TODO: command has a bug that needs to be rectified
+{
+  "status": "success",
+  "message": "Getting objects in robot view successful",
+  "payload": {
+    "1": {
+      "name": "floor",
+      "type": "Object",
+      "pixel_count": 10010
+    },
+    "2": {
+      "name": "kitchen",
+      "type": "Object",
+      "pixel_count": 46189
+    },
+    "3": {
+      "name": "pr2",
+      "type": "Object",
+      "pixel_count": 2557
+    },
+    "4": {
+      "name": "cereal1",
+      "type":
+      "Object",
+      "pixel_count": 126
+    }
+  }
+}
 ```
 
 ### Exit the simulation
