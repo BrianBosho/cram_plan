@@ -13,3 +13,7 @@ __pycache__/
 env/
 venv/
 .venv/
+#dd the folders pycram, reference docs, and env to the .gitignore file
+pycram/
+reference docs/
+env/
