@@ -43,7 +43,7 @@ class Env(Enum):
     KITCHEN, APARTMENT = range(2)
 
 
-class Obj(Enum):
+class ObjectType(Enum):
     CEREAL, MILK, SPOON, BOWL = range(4)
 
 
@@ -56,6 +56,7 @@ class Location(Enum):
 
 
 ROBOT_NAME = "pr2"
+ROBOT_HOME_POSE = Pose([0, 0, 0])
 COLOURS = {
     Colour.RED: (1.0, 0.0, 0.0, 1.0),
     Colour.GREEN: (0.0, 1.0, 0.0, 1.0),
@@ -69,11 +70,11 @@ ENVIRONMENTS = {
     Env.KITCHEN: ("kitchen", Kitchen, "kitchen.urdf"),
     Env.APARTMENT: ("apartment", Apartment, "apartment.urdf"),
 }
-OBJECTS = {
-    Obj.CEREAL: (Cereal, "breakfast_cereal.stl"),
-    Obj.MILK: (Milk, "milk.stl"),
-    Obj.SPOON: (Spoon, "spoon.stl"),
-    Obj.BOWL: (Bowl, "bowl.stl"),
+OBJECTS_TYPES = {
+    ObjectType.CEREAL: (Cereal, "breakfast_cereal.stl"),
+    ObjectType.MILK: (Milk, "milk.stl"),
+    ObjectType.SPOON: (Spoon, "spoon.stl"),
+    ObjectType.BOWL: (Bowl, "bowl.stl"),
 }
 LOCATIONS = {
     Location.KITCHEN_ISLAND: "kitchen_island_surface",
@@ -175,10 +176,10 @@ def init_simulation(env: Env = Env.KITCHEN) -> Response:
     return Response(status="success", message="Simulation initialisation successful")
 
 
-def pack_arms() -> Response:
+def park_arms() -> Response:
     with simulated_robot:
         ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
-    return Response(status="success", message="Robot arms pack successful")
+    return Response(status="success", message="Robot arms park successful")
 
 
 def adjust_torso(high: bool) -> Response:
@@ -192,8 +193,38 @@ def adjust_torso(high: bool) -> Response:
     )
 
 
+def get_robot_pose() -> Response:
+    with simulated_robot:
+        try:
+            robot = BelieveObject(names=[ROBOT_NAME]).resolve()
+        except StopIteration:
+            robot = None
+
+    return Response(
+        status="success" if robot is not None else "error",
+        message=f"Robot pose resolve{'' if robot is not None else ' not'} successful",
+        payload={
+            "position": (
+                [robot.pose.position.x, robot.pose.position.y, robot.pose.position.z]
+                if robot is not None
+                else "error"
+            ),
+            "orientation": (
+                [
+                    robot.pose.orientation.x,
+                    robot.pose.orientation.y,
+                    robot.pose.orientation.z,
+                    robot.pose.orientation.w,
+                ]
+                if robot is not None
+                else "error"
+            ),
+        },
+    )
+
+
 def spawn_object(
-    obj: Obj,
+    obj_type: ObjectType,
     obj_name: str,
     coordinates: Tuple[float, float, float] = (1.4, 1.0, 0.9),
     colour: Colour = Colour.DEFAULT,
@@ -213,10 +244,10 @@ def spawn_object(
         )
 
     obj_name = obj_name.lower()
-    obj_type, obj_file = OBJECTS[obj]
+    object_type, obj_file = OBJECTS_TYPES[obj_type]
     Object(
         obj_name,
-        obj_type,
+        object_type,
         obj_file,
         pose=Pose(position),
         color=Color.from_list(COLOURS[colour]),
@@ -237,7 +268,10 @@ def spawn_object(
     )
 
 
-def move_robot(coordinates: Tuple[float, float, float] = (0, 0, 0)) -> Response:
+def move_robot(
+    coordinates: Tuple[float, float, float] = (0, 0, 0),
+    orientation: Tuple[float, float, float, float] = (0, 0, 0, 1),
+) -> Response:
     try:
         position = [float(i) for i in coordinates]
     except ValueError:
@@ -252,20 +286,36 @@ def move_robot(coordinates: Tuple[float, float, float] = (0, 0, 0)) -> Response:
             message="Coordinates must have exactly 3 real numbers (x,y,z)",
         )
 
+    try:
+        rotation = [float(i) for i in orientation]
+    except ValueError:
+        return Response(
+            status="error",
+            message="Orientation must have exactly 4 real numbers (x,y,z,w)",
+        )
+
+    if len(rotation) != 4:
+        return Response(
+            status="error",
+            message="Orientation must have exactly 4 real numbers (x,y,z,w)",
+        )
+
     with simulated_robot:
         ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
-        NavigateActionDescription(target_location=[Pose(position)]).resolve().perform()
+        NavigateActionDescription(
+            target_location=[Pose(position, rotation)]
+        ).resolve().perform()
 
     return Response(
         status="success",
-        message=f"Robot moved to coordinates {position}",
-        payload={"coordinates": position},
+        message=f"Robot moved to coordinates {position} and orientation {rotation}",
+        payload={"coordinates": position, "orientation": rotation},
     )
 
 
-def is_object_type_in_environment(obj: Obj) -> Response:
-    obj_type = OBJECTS[obj][0]
-    objects = BelieveObject(types=[obj_type])
+def is_object_type_in_environment(obj_type: ObjectType) -> Response:
+    object_type = OBJECTS_TYPES[obj_type][0]
+    objects = BelieveObject(types=[object_type])
     objs_in_environment = [
         {"name": i.name, "type": str(obj_type).split(".")[1]} for i in objects
     ]
@@ -287,19 +337,15 @@ def is_object_in_environment(obj_name: str) -> Response:
         except StopIteration:
             obj = None
 
-    if obj is None:
-        return Response(
-            status="error", message=f"Object '{obj_name}' is not in the environment"
-        )
-
     return Response(
-        status="success", message=f"Object '{obj_name}' is in the environment"
+        status="success" if obj is not None else "error",
+        message=f"Object '{obj_name}' is{'' if obj is None else ' not'} in the environment",
     )
 
 
-def is_object_type_in_location(location: Location, obj: Obj) -> Response:
-    obj_type = OBJECTS[obj][0]
-    object_desig = BelieveObject(types=[obj_type])
+def is_object_type_in_location(location: Location, obj_type: ObjectType) -> Response:
+    object_type = OBJECTS_TYPES[obj_type][0]
+    object_desig = BelieveObject(types=[object_type])
 
     if len([_ for _ in object_desig]) == 0:
         return Response(
@@ -381,7 +427,6 @@ def look_at_object(obj_name: str) -> Response:
 
 def pick_and_place(obj_name: str, destination: Location) -> Response:
     obj_name = obj_name.lower()
-    robot_home_pose = Pose([0, 0, 0])
 
     with simulated_robot:
         env = BelieveObject(names=[ENVIRONMENTS[environment][0]]).resolve()
@@ -445,7 +490,7 @@ def pick_and_place(obj_name: str, destination: Location) -> Response:
     if not grasped:
         with simulated_robot:
             NavigateActionDescription(
-                target_location=robot_home_pose
+                target_location=ROBOT_HOME_POSE
             ).resolve().perform()
             MoveTorsoActionDescription([TorsoState.LOW]).resolve().perform()
 

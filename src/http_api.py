@@ -40,35 +40,42 @@ app.add_middleware(
 
 class RobotCommands:
     @staticmethod
-    def pack_arms():
-        return robo_cram.pack_arms()
+    def park_arms():
+        return robo_cram.park_arms()
 
     @staticmethod
     def adjust_torso(high):
         return robo_cram.adjust_torso(high)
 
     @staticmethod
-    def spawn_object(obj, obj_name, coordinates, colour):
+    def get_robot_pose():
+        return robo_cram.get_robot_pose()
+
+    @staticmethod
+    def spawn_object(obj_type, obj_name, coordinates, colour):
         return robo_cram.spawn_object(
-            robo_cram.Obj(obj), obj_name, coordinates, robo_cram.Colour(colour)
+            robo_cram.ObjectType(obj_type),
+            obj_name,
+            coordinates,
+            robo_cram.Colour(colour),
         )
 
     @staticmethod
-    def move_robot(coordinates):
-        return robo_cram.move_robot(coordinates)
+    def move_robot(coordinates, orientation):
+        return robo_cram.move_robot(coordinates, orientation)
 
     @staticmethod
-    def is_object_type_in_environment(obj):
-        return robo_cram.is_object_type_in_environment(robo_cram.Obj(obj))
+    def is_object_type_in_environment(obj_type):
+        return robo_cram.is_object_type_in_environment(robo_cram.ObjectType(obj_type))
 
     @staticmethod
     def is_object_in_environment(obj_name):
         return robo_cram.is_object_in_environment(obj_name)
 
     @staticmethod
-    def is_object_type_in_location(location, obj):
+    def is_object_type_in_location(location, obj_type):
         return robo_cram.is_object_type_in_location(
-            robo_cram.Location(location), robo_cram.Obj(obj)
+            robo_cram.Location(location), robo_cram.ObjectType(obj_type)
         )
 
     @staticmethod
@@ -121,7 +128,7 @@ class RobotCommands:
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    with open("templates/index.html", "r") as f:
+    with open("./src/templates/index.html", "r") as f:
         html_content = f.read()
     return HTMLResponse(content=html_content)
 
