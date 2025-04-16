@@ -1,7 +1,9 @@
 import requests
+from utils.rotation import euler_to_quaternion
 
 url = "http://localhost:8001/execute"
 
+orientation = euler_to_quaternion(0, 0, 120)
 
 
 # def test camera
@@ -78,6 +80,14 @@ def test_detect_object():
     response = requests.post(url, json=payload)
     print(response.json())
 
+# test move and rotate
+def test_move_and_rotate():
+    payload = {
+        "command": "move_and_rotate",
+        "params": {"location": [0, 0, 0], "orientation": orientation}
+    }
+    response = requests.post(url, json=payload)
+    print(response.json())
 
 test_move = False
 test_camera_function = False
@@ -86,7 +96,9 @@ test_robot_perceive_function = False
 test_transport_object_function = False
 test_calculate_object_distances_function = False
 test_look_at_object_function = False
-test_detect_object_function = True
+test_detect_object_function = False
+test_move_and_rotate_function = True
+
 
 def main():
     if test_move == True:
@@ -105,6 +117,8 @@ def main():
         test_look_at_object()
     if test_detect_object_function == True:
         test_detect_object()
+    if test_move_and_rotate_function == True:
+        test_move_and_rotate()
 
 if __name__ == "__main__":
     main()

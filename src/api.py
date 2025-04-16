@@ -74,7 +74,8 @@ from robot_actions_api import (
     get_robot_camera_images,
     calculate_object_distances,
     look_at_object,
-    detect_object
+    detect_object,
+    move_and_rotate
 )
 
 # from camera import get_camera_images    
@@ -136,6 +137,9 @@ async def execute_command(data: dict = Body(...)):
             return result
         elif command == "detect_object":
             result = detect_object(**params)
+            return result
+        elif command == "move_and_rotate":
+            result = move_and_rotate(**params)
             return result
         else:
             return {"status": "error", "message": f"Unknown command: {command}"}

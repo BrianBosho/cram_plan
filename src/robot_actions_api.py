@@ -1047,3 +1047,73 @@ def get_robot_camera_images(target_distance=2.0, world=None):
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
+
+def move_and_rotate(location=None, orientation=None):
+    """
+    Move robot to specified location and/or rotate to specified orientation.
+    
+    Args:
+        location (list): [x, y, z] coordinates to move to. If None, robot will only rotate.
+        orientation (list): [x, y, z, w] quaternion for rotation. If None, robot will maintain current orientation.
+        
+    Returns:
+        dict: Result of the operation
+    """
+    try:
+        # Get the world to access current robot state
+        world = get_world_safely()
+        if world is None:
+            return {"status": "error", "message": "World is not initialized"}
+            
+        # Get current robot pose
+        robot = None
+        for obj in world.objects:
+            if obj.name == "pr2":
+                robot = obj
+                break
+                
+        if not robot:
+            return {"status": "error", "message": "Robot not found in world"}
+            
+        current_pose = robot.pose
+        current_position = current_pose.position
+        current_orientation = current_pose.orientation
+        
+        # Use provided values or defaults from current pose
+        if location is None:
+            location = current_position
+        else:
+            # Ensure location is a list of 3 floats
+            if len(location) != 3:
+                return {"status": "error", "message": "Location must be a list of 3 values [x, y, z]"}
+            location = [float(val) for val in location]
+            
+        if orientation is None:
+            orientation = current_orientation
+        else:
+            # Ensure orientation is a list of 4 floats
+            if len(orientation) != 4:
+                return {"status": "error", "message": "Orientation must be a list of 4 values [x, y, z, w]"}
+            orientation = [float(val) for val in orientation]
+        
+        # Create the target pose
+        target_pose = Pose(location, orientation)
+        
+        with simulated_robot:
+            robot_desig = ObjectDesignatorDescription(names=["pr2"]).resolve()
+            navigate_action = NavigateAction(target_locations=[target_pose]).resolve()
+            
+            print(f"API: Navigating to position {location} with orientation {orientation}")
+            navigate_action.perform()
+            print("API: Robot has moved and/or rotated to target pose.")
+        
+        return {
+            "status": "success", 
+            "message": f"Robot moved to coordinates {location} with orientation {orientation}",
+            "position": location,
+            "orientation": orientation
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
