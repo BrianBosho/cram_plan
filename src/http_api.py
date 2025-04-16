@@ -1,6 +1,5 @@
 import base64
 import io
-import json
 import os
 import sys
 
@@ -8,7 +7,7 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import Body, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse
 from PIL import Image
 
 import robo_cram
@@ -126,7 +125,7 @@ class RobotCommands:
         return robo_cram.get_objects_in_robot_view(target_distance, min_pixel_count)
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def index():
     with open("./src/templates/index.html", "r") as f:
         html_content = f.read()
@@ -135,14 +134,8 @@ async def index():
 
 @app.get("/commands")
 async def list_commands():
-    return Response(
-        json.dumps(
-            [
-                k
-                for k, v in RobotCommands.__dict__.items()
-                if isinstance(v, staticmethod)
-            ]
-        ),
+    return JSONResponse(
+        [k for k, v in RobotCommands.__dict__.items() if isinstance(v, staticmethod)],
         200,
     )
 
@@ -154,13 +147,10 @@ async def execute_command(data: dict = Body(...)):
 
     try:
         results = getattr(RobotCommands, command)(**params)
-        response = Response(
-            json.dumps(results), 200 if results["status"] == "success" else 400
-        )
+        response = JSONResponse(results, 200 if results["status"] == "success" else 400)
     except AttributeError:
-        response = Response(
-            json.dumps({"status": "error", "message": f"Command not found: {command}"}),
-            404,
+        response = JSONResponse(
+            {"status": "error", "message": f"Command not found: {command}"}, 404
         )
 
     return response
