@@ -23,10 +23,11 @@ resides:
 8. Find if an object of some type is in some location of the environment
 9. Find if an object with some name is in some location of the environment
 10. Look at an object
-11. Pick an object and place it elsewhere
-12. Capture an image using the robot's camera
-13. Get a list of objects in the robot's field of view
-14. Exit the simulation
+11. Pick an object and place it at a specific coordinate
+12. Pick an object and place it at a specific location
+13. Capture an image using the robot's camera
+14. Get a list of objects in the robot's field of view
+15. Exit the simulation
 
 ## Components
 
@@ -115,25 +116,26 @@ Location areas and their numeric codes:
 | --------------- | ----- |
 | Kitchen island  | 0     |
 | Sink area       | 1     |
-| Table            | 2    |
 
 ### List all supported API endpoints
 
 ```bash
 $ http GET http://127.0.0.1:8001/commands
 [
-  "park_arms",
-  "adjust_torso",
-  "spawn_object",
-  "move_robot",
-  "is_object_type_in_environment",
-  "is_object_in_environment",
-  "is_object_type_in_location",
-  "is_object_in_location",
-  "look_at_object",
-  "pick_and_place",
-  "capture_image",
-  "get_objects_in_robot_view"
+    "park_arms",
+    "adjust_torso",
+    "get_robot_pose",
+    "spawn_object",
+    "move_robot",
+    "is_object_type_in_environment",
+    "is_object_in_environment",
+    "is_object_type_in_location",
+    "is_object_in_location",
+    "look_at_object",
+    "pick_and_place_coordinates",
+    "pick_and_place_location",
+    "capture_image",
+    "get_objects_in_robot_view"
 ]
 ```
 
@@ -142,8 +144,8 @@ $ http GET http://127.0.0.1:8001/commands
 ```bash
 $ http POST http://127.0.0.1:8001/execute command=park_arms
 {
-  "status": "success",
-  "message": "Robot arms park successful"
+    "message": "Robot arms park successful",
+    "status": "success"
 }
 ```
 
@@ -152,8 +154,8 @@ $ http POST http://127.0.0.1:8001/execute command=park_arms
 ```bash
 $ http POST http://127.0.0.1:8001/execute command=adjust_torso params:='{"high": true}'
 {
-  "status": "success",
-  "message": "Robot torso move to high successful"
+    "message": "Robot torso move to high successful",
+    "status": "success"
 }
 ```
 
@@ -162,45 +164,73 @@ $ http POST http://127.0.0.1:8001/execute command=adjust_torso params:='{"high":
 ```bash
 $ http POST http://127.0.0.1:8001/execute command=get_robot_pose
 {
-  "status": "success",
-  "message": "Robot pose resolve successful",
-  "payload" {
-    "position": [0.0, 0.0, 0.0],
-    "orientation" [0.0, 0.0, 0.0, 1.0]
-  }
+    "message": "Robot pose resolve successful",
+    "payload": {
+        "orientation": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+        ],
+        "position": [
+            0.0,
+            0.0,
+            0.0
+        ]
+    },
+    "status": "success"
 }
 ```
 
 ### Spawn objects in the environment
 
 ```bash
-$ http POST http://127.0.0.1:8001/execute command=spawn_object params:='{"obj_type": 0, "obj_name": "cereal1", "coordinates": [1.4, 1.0, 0.9], "colour": 0}'
+$ http POST http://127.0.0.1:8001/execute command=spawn_object params:='{"obj_type": 0, "obj_name": "cereal1", "coordinates": [1.4, 1.0, 0.95], "colour": 0}'
 {
-  "status": "success",
-  "message": "Object 'cereal1' created successfully",
-  "payload": {
-    "object": {
-      "name": "cereal1",
-      "type": "Cereal",
-      "file": "breakfast_cereal.stl",
-      "position": [1.4, 1.0, 0.9],
-      "colour": [1.0, 0.0, 0.0, 1.0]
-    }
-  }
+{
+    "message": "Object 'cereal1' created successfully",
+    "payload": {
+        "object": {
+            "colour": [
+                1.0,
+                0.0,
+                0.0,
+                1.0
+            ],
+            "file": "breakfast_cereal.stl",
+            "name": "cereal1",
+            "position": [
+                1.4,
+                1.0,
+                0.95
+            ],
+            "type": "CEREAL"
+        }
+    },
+    "status": "success"
 }
 ```
 
 ### Move the robot within its environment
 
 ```bash
-$ http POST http://127.0.0.1:8001/execute command=move_robot params:='{"coordinates": [0.75, 1, 0], "orientation": [0, 0, 0.7071, 0.7071]}'
+$ http POST http://127.0.0.1:8001/execute command=move_robot params:='{"coordinates": [0.5, 0.5, 0], "orientation": [0, 0, 0.7071, 0.7071]}'
 {
-  "status": "success",
-  "message": "Robot moved to coordinates [0.75, 1.0, 0.0] and orientation [0.0, 0.0, 0.7071, 0.7071]",
-  "payload": {
-    "coordinates": [0.75, 1.0, 0.0],
-    "orientation": [0.0, 0.0, 0.7071, 0.7071]
-  }
+    "message": "Robot moved to coordinates [0.5, 0.5, 0.0] and orientation [0.0, 0.0, 0.7071, 0.7071]",
+    "payload": {
+        "coordinates": [
+            0.5,
+            0.5,
+            0.0
+        ],
+        "orientation": [
+            0.0,
+            0.0,
+            0.7071,
+            0.7071
+        ]
+    },
+    "status": "success"
 }
 ```
 
@@ -209,16 +239,16 @@ $ http POST http://127.0.0.1:8001/execute command=move_robot params:='{"coordina
 ```bash
 $ http POST http://127.0.0.1:8001/execute command=is_object_type_in_environment params:='{"obj_type": 0}'
 {
-  "status": "success",
-  "message": "1 object of type 'Cereal' is in the environment",
-  "payload": {
-    "objects": [
-      {
-        "name": "cereal1",
-        "type": "Cereal"
-      }
-    ]
-  }
+    "message": "1 object of type 'CEREAL' is in the environment",
+    "payload": {
+        "objects": [
+            {
+                "name": "cereal1",
+                "type": "CEREAL"
+            }
+        ]
+    },
+    "status": "success"
 }
 ```
 
@@ -227,8 +257,8 @@ $ http POST http://127.0.0.1:8001/execute command=is_object_type_in_environment 
 ```bash
 $ http POST http://127.0.0.1:8001/execute command=is_object_in_environment params:='{"obj_name": "cereal1"}'
 {
-  "status": "success", "message":
-  "Object 'cereal1' is in the environment"
+    "message": "Object 'cereal1' is not in the environment",
+    "status": "success"
 }
 ```
 
@@ -248,19 +278,36 @@ TODO: command has a bug that needs to be rectified
 
 ### Look at an object
 
+At times the returned result may have a status of `error` even though the robot may have turned its head to look at the
+object. It's advisable to retry running one more time, as the chances of returning a status of `success` greatly improve
+on the second attempt.
+
 ```bash
 $ http POST http://127.0.0.1:8001/execute command=look_at_object params:='{"obj_name": "cereal1"}'
 {
-  "status": "success",
-  "message": "Robot is now looking at 'cereal1'"
+    "message": "Robot is now looking at 'cereal1'",
+    "status": "success"
 }
 ```
 
-### Pick an object and place it elsewhere
+### Pick an object and place it at a specific coordinate
 
 ```bash
-$ http POST http://127.0.0.1:8001/execute command=pick_and_place params:='{"obj_name": "cereal1", "destination": 0}'
-TODO: command has a bug that needs to be rectified
+$ http POST http://127.0.0.1:8001/execute command=pick_and_place_coordinates params:='{"obj_name": "cereal1", "destination": [1.4, 0.5, 0.95]}'
+{
+    "message": "Object 'cereal1' successfully moved to '[1.4, 0.5, 0.95]'",
+    "status": "success"
+}
+```
+
+### Pick an object and place it at a specific location
+
+```bash
+$ http POST http://127.0.0.1:8001/execute command=pick_and_place_location params:='{"obj_name": "cereal1", "destination": 0}'
+{
+    "message": "Object 'cereal1' successfully moved to '[-1.2274999952316283, 2.099200015068054, 0.9547865257474011]'",
+    "status": "success"
+}
 ```
 
 ### Capture an image using the robot's camera
@@ -268,13 +315,13 @@ TODO: command has a bug that needs to be rectified
 ```bash
 $ http POST http://127.0.0.1:8001/execute command=capture_image params:='{"target_distance": 2.0}'
 {
-  "status": "success",
-  "message": "Image capture successful",
-  "payload": {
-    "rgb_image": "base64 encoded image",
-    "depth_image": "base64 encoded image",
-    "segmentation_mask": "base64 encoded image"
-  }
+    "message": "Image capture successful",
+    "payload": {
+        "depth_image": <base64-encoded-image>,
+        "rgb_image": <base64-encoded-image>,
+        "segmentation_mask": <base64-encoded-image>
+    },
+    "status": "success"
 }
 ```
 
@@ -283,31 +330,30 @@ $ http POST http://127.0.0.1:8001/execute command=capture_image params:='{"targe
 ```bash
 $ http POST http://127.0.0.1:8001/execute command=get_objects_in_robot_view params:='{"target_distance": 2.0, "min_pixel_count": 50}'
 {
-  "status": "success",
-  "message": "Getting objects in robot view successful",
-  "payload": {
-    "1": {
-      "name": "floor",
-      "type": "Object",
-      "pixel_count": 10010
+    "message": "Getting objects in robot view successful",
+    "payload": {
+        "1": {
+            "name": "floor",
+            "pixel_count": 11401,
+            "type": "Object"
+        },
+        "2": {
+            "name": "kitchen",
+            "pixel_count": 47615,
+            "type": "Object"
+        },
+        "3": {
+            "name": "pr2",
+            "pixel_count": 3666,
+            "type": "Object"
+        },
+        "4": {
+            "name": "cereal1",
+            "pixel_count": 141,
+            "type": "Object"
+        }
     },
-    "2": {
-      "name": "kitchen",
-      "type": "Object",
-      "pixel_count": 46189
-    },
-    "3": {
-      "name": "pr2",
-      "type": "Object",
-      "pixel_count": 2557
-    },
-    "4": {
-      "name": "cereal1",
-      "type":
-      "Object",
-      "pixel_count": 126
-    }
-  }
+    "status": "success"
 }
 ```
 

@@ -11,6 +11,7 @@ from pycram.datastructures.enums import (
     TorsoState,
     WorldMode,
 )
+from pycram.datastructures.grasp import GraspDescription
 from pycram.datastructures.pose import Pose
 from pycram.designators.action_designator import (
     DetectActionDescription,
@@ -28,6 +29,7 @@ from pycram.designators.location_designator import (
 )
 from pycram.designators.object_designator import BelieveObject
 from pycram.failures import (
+    IKError,
     LookAtGoalNotReached,
     ObjectNotGraspedError,
     PerceptionObjectNotFound,
@@ -52,11 +54,11 @@ class Colour(Enum):
 
 
 class Location(Enum):
-    KITCHEN_ISLAND, SINK_AREA, TABLE = range(3)
+    KITCHEN_ISLAND, SINK_AREA = range(2)
 
 
 ROBOT_NAME = "pr2"
-ROBOT_HOME_POSE = Pose([0, 0, 0])
+ROBOT_HOME_POSE = Pose([0, 0, 0], [0, 0, 0, 1])
 COLOURS = {
     Colour.RED: (1.0, 0.0, 0.0, 1.0),
     Colour.GREEN: (0.0, 1.0, 0.0, 1.0),
@@ -79,7 +81,6 @@ OBJECTS_TYPES = {
 LOCATIONS = {
     Location.KITCHEN_ISLAND: "kitchen_island_surface",
     Location.SINK_AREA: "sink_area_surface",
-    Location.TABLE: "table_area_main",
 }
 BLACK_COLOUR = Color(0.0, 0.0, 0.0, 1.0)
 GREEN_COLOUR = Color(0.0, 0.25, 0.0, 1.0)
@@ -226,7 +227,7 @@ def get_robot_pose() -> Response:
 def spawn_object(
     obj_type: ObjectType,
     obj_name: str,
-    coordinates: Tuple[float, float, float] = (1.4, 1.0, 0.9),
+    coordinates: Tuple[float, float, float] = (1.4, 1.0, 0.95),
     colour: Colour = Colour.DEFAULT,
 ) -> Response:
     try:
@@ -425,13 +426,23 @@ def look_at_object(obj_name: str) -> Response:
     return Response(status="success", message=f"Robot is now looking at '{obj_name}'")
 
 
-def pick_and_place(obj_name: str, destination: Location) -> Response:
+def pick_and_place_coordinates(
+    obj_name: str, destination: Tuple[float, float, float]
+) -> Response:
     obj_name = obj_name.lower()
 
+    try:
+        position = [float(i) for i in destination]
+    except ValueError:
+        return Response(
+            status="error",
+            message="Destination coordinates must have exactly 3 real numbers (x,y,z)",
+        )
+
     with simulated_robot:
-        env = BelieveObject(names=[ENVIRONMENTS[environment][0]]).resolve()
         try:
             obj = BelieveObject(names=[obj_name]).resolve()
+            obj_pose_initial = obj.pose
         except StopIteration:
             obj = None
 
@@ -462,33 +473,33 @@ def pick_and_place(obj_name: str, destination: Location) -> Response:
         )
 
     with simulated_robot:
-        NavigateActionDescription(
-            target_location=Pose(
-                pickup_pose.pose.position, pickup_pose.pose.orientation
-            )
-        ).resolve().perform()
+        NavigateActionDescription(target_location=pickup_pose).resolve().perform()
 
         grasped = False
-        for grasp in [
+        for approach_direction in [
             Grasp.FRONT,
             Grasp.BACK,
             Grasp.RIGHT,
             Grasp.LEFT,
-            Grasp.TOP,
-            Grasp.BOTTOM,
         ]:
+            grasp = GraspDescription(
+                approach_direction,
+                vertical_alignment=(
+                    Grasp.TOP if issubclass(obj.obj_type, Spoon) else None
+                ),
+                rotate_gripper=False,
+            )
             try:
                 PickUpActionDescription(
                     object_designator=obj, arm=pickup_arm, grasp_description=grasp
                 ).resolve().perform()
                 grasped = True
-            except ObjectNotGraspedError:
+            except (ObjectNotGraspedError, IKError):
                 pass
-
-        ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
 
     if not grasped:
         with simulated_robot:
+            ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
             NavigateActionDescription(
                 target_location=ROBOT_HOME_POSE
             ).resolve().perform()
@@ -499,25 +510,75 @@ def pick_and_place(obj_name: str, destination: Location) -> Response:
         )
 
     with simulated_robot:
-        obj_dest_location = SemanticCostmapLocation(
-            link_name=LOCATIONS[destination], part_of=env, for_object=obj
-        ).resolve()
-        place_location = CostmapLocation(
-            target=obj_dest_location.pose, reachable_for=robot, reachable_arm=pickup_arm
-        ).resolve()
+        try:
+            place_location = CostmapLocation(
+                target=Pose(position),
+                reachable_for=robot,
+                reachable_arm=pickup_arm,
+                object_in_hand=obj,
+            ).resolve()
+        except StopIteration:
+            place_location = None
 
-        NavigateActionDescription(
-            target_location=place_location.pose
-        ).resolve().perform()
+    if place_location is None:
+        with simulated_robot:
+            PlaceActionDescription(
+                obj, target_location=obj_pose_initial, arm=pickup_arm
+            ).resolve().perform()
+            ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
+            NavigateActionDescription(
+                target_location=ROBOT_HOME_POSE
+            ).resolve().perform()
+            MoveTorsoActionDescription([TorsoState.LOW]).resolve().perform()
+
+        return Response(
+            status="error",
+            message="The location to place the object cannot be resolved",
+        )
+
+    with simulated_robot:
+        ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
+        NavigateActionDescription(target_location=place_location).resolve().perform()
         PlaceActionDescription(
-            obj, target_location=obj_dest_location.pose, arm=pickup_arm
+            obj, target_location=Pose(position), arm=pickup_arm
         ).resolve().perform()
         ParkArmsActionDescription([Arms.BOTH]).resolve().perform()
+        NavigateActionDescription(target_location=ROBOT_HOME_POSE).resolve().perform()
         MoveTorsoActionDescription([TorsoState.LOW]).resolve().perform()
 
     return Response(
         status="success",
-        message=f"Object '{obj_name}' successfully moved to '{LOCATIONS[destination]}'",
+        message=f"Object '{obj_name}' successfully moved to '{position}'",
+    )
+
+
+def pick_and_place_location(obj_name: str, destination: Location) -> Response:
+    obj_name = obj_name.lower()
+
+    with simulated_robot:
+        env = BelieveObject(names=[ENVIRONMENTS[environment][0]]).resolve()
+        try:
+            obj = BelieveObject(names=[obj_name]).resolve()
+        except StopIteration:
+            obj = None
+
+    if obj is None:
+        return Response(
+            status="error", message=f"Object '{obj_name}' is not in the environment"
+        )
+
+    with simulated_robot:
+        destination_location = SemanticCostmapLocation(
+            link_name=LOCATIONS[destination], part_of=env, for_object=obj
+        ).resolve()
+
+    return pick_and_place_coordinates(
+        obj_name,
+        [
+            destination_location.pose.position.x,
+            destination_location.pose.position.y,
+            destination_location.pose.position.z,
+        ],
     )
 
 
