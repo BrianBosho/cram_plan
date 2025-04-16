@@ -60,13 +60,24 @@ def test_calculate_object_distances():
     response = requests.post(url, json=payload)
     print(response.json())
 
+# test look at object
+def test_look_at_object():
+    payload = {
+        "command": "look_at_object",    
+        "params": {"obj_name": "cereal"}
+    }
+    response = requests.post(url, json=payload)
+    print(response.json())
 
 test_move = False
 test_camera_function = False
 test_pickup_and_place_function = False
 test_robot_perceive_function = False
 test_transport_object_function = False
-test_calculate_object_distances_function = True
+test_calculate_object_distances_function = False
+test_look_at_object_function = True
+
+
 def main():
     if test_move == True:
         test_move_robot()
@@ -80,6 +91,8 @@ def main():
         test_transport_object()
     if test_calculate_object_distances_function == True:
         test_calculate_object_distances()
+    if test_look_at_object_function == True:
+        test_look_at_object()
 
 if __name__ == "__main__":
     main()

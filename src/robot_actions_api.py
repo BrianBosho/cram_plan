@@ -24,8 +24,70 @@ from matplotlib.colors import Normalize
 from pycram.robot_description import RobotDescription
 from pycram.datastructures.enums import Frame
 from io import BytesIO
+from typing import TypedDict, Any
+
+from pycram.failures import (
+    LookAtGoalNotReached,
+    
+)
 
 
+
+
+class Response(TypedDict):
+    status: str
+    message: str
+    payload: Any = None
+
+def look_at_object(obj_name: str) -> Response:
+    """
+    Make the robot look at the specified object.
+    
+    Parameters:
+        obj_name (str): The name of the object to look at. Required parameter.
+    
+    Returns:
+        Response: A response object with the following fields:
+            - status (str): 'success' if robot successfully looks at object, 'error' otherwise
+            - message (str): A description of the operation result
+    
+    Errors:
+        - Returns error response if no object with the specified name is in the environment
+        - Returns error response if the robot cannot successfully look at the object
+        - obj_name parameter must be provided, otherwise will raise TypeError
+        
+    Notes:
+        - Implicitly relies on the simulation being initialized
+        - Object name is converted to lowercase for case-insensitive comparison
+        - The function first checks if the object exists in the environment
+        - Then attempts to make the robot look at the object
+    """
+    obj_name = obj_name.lower()
+
+    with simulated_robot:
+        try:
+            obj = BelieveObject(names=[obj_name]).resolve()
+        except StopIteration:
+            obj = None
+
+    if obj is None:
+        return Response(
+            status="error", message=f"Object '{obj_name}' is not in the environment"
+        )
+
+    with simulated_robot:
+        try:
+            LookAtAction(targets=[obj.pose]).resolve().perform()
+            looking_at_object = True
+        except LookAtGoalNotReached:
+            looking_at_object = False
+
+    if not looking_at_object:
+        return Response(
+            status="error", message=f"Robot vision failed to reach '{obj_name}'"
+        )
+
+    return Response(status="success", message=f"Robot is now looking at '{obj_name}'")
 # Import from environment but avoid initialization side effects
 def get_world_safely():
     from environment import get_world
@@ -463,7 +525,6 @@ def robot_perceive(perception_area=None):
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
- 
 
 def transport_object(object_name=None, target_location=None, arm=None):
     """
