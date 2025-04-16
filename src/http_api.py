@@ -130,6 +130,22 @@ class RobotCommands:
     def get_objects_in_robot_view(target_distance, min_pixel_count):
         return robo_cram.get_objects_in_robot_view(target_distance, min_pixel_count)
 
+    @staticmethod
+    def get_distance_between_objects(
+        source_object_name, target_object_names, exclude_object_names
+    ):
+        if len(exclude_object_names) > 0:
+            return robo_cram.get_distance_between_objects(
+                source_object_name if len(source_object_name) > 0 else None,
+                target_object_names if len(target_object_names) > 0 else None,
+                exclude_object_names,
+            )
+        else:
+            return robo_cram.get_distance_between_objects(
+                source_object_name if len(source_object_name) > 0 else None,
+                target_object_names if len(target_object_names) > 0 else None,
+            )
+
 
 @app.get("/")
 async def index():

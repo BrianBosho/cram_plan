@@ -1,5 +1,6 @@
+import itertools
 from enum import Enum
-from typing import Any, Tuple, TypedDict
+from typing import Any, Iterable, Optional, Tuple, TypedDict
 
 import numpy as np
 from pycram.datastructures.dataclasses import Color
@@ -651,6 +652,69 @@ def get_objects_in_robot_view(
         message="Getting objects in robot view successful",
         payload=visible_objects,
     )
+
+
+def get_distance_between_objects(
+    source_object_name: Optional[str] = None,
+    target_object_names: Optional[Iterable[str]] = None,
+    exclude_object_names: Iterable[str] = ("floor", "kitchen"),
+) -> Response:
+    source_name = source_object_name.lower() if source_object_name is not None else None
+    target_names = (
+        [i.lower() for i in target_object_names]
+        if target_object_names is not None
+        else None
+    )
+    exclude_names = [i.lower() for i in exclude_object_names]
+    filtered_objects = [i for i in world.objects if i.name not in exclude_names]
+
+    if target_names is not None:
+        filtered_objects = [i for i in filtered_objects if i.name in target_names]
+
+    if source_name is not None:
+        with simulated_robot:
+            try:
+                source = BelieveObject(names=[source_name]).resolve()
+            except StopIteration:
+                source = None
+        if source is None:
+            response = Response(
+                status="error", message=f"Object {source_name} not in environment"
+            )
+        else:
+            distances = {}
+            source_pos = source.get_position()
+            for obj in filtered_objects:
+                if obj.name == source_name:
+                    continue
+                obj_pos = obj.get_position()
+                distances[obj.name] = np.sqrt(
+                    (source_pos.x - obj_pos.x) ** 2
+                    + (source_pos.y - obj_pos.y) ** 2
+                    + (source_pos.z - obj_pos.z) ** 2
+                )
+            response = Response(
+                status="success",
+                message="Distance calculation is successful",
+                payload=distances,
+            )
+    else:
+        distances = {}
+        for obj1, obj2 in itertools.combinations(filtered_objects, 2):
+            pos1 = obj1.get_position()
+            pos2 = obj2.get_position()
+            if obj1.name not in distances:
+                distances[obj1.name] = {}
+            distances[obj1.name][obj2.name] = np.sqrt(
+                (pos1.x - pos2.x) ** 2 + (pos1.y - pos2.y) ** 2 + (pos1.z - pos2.z) ** 2
+            )
+        response = Response(
+            status="success",
+            message="Distance calculation is successful",
+            payload=distances,
+        )
+
+    return response
 
 
 def exit_simulation() -> Response:

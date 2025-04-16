@@ -27,7 +27,8 @@ resides:
 12. Pick an object and place it at a specific location
 13. Capture an image using the robot's camera
 14. Get a list of objects in the robot's field of view
-15. Exit the simulation
+15. Get distances between objects in the environment
+16. Exit the simulation
 
 ## Components
 
@@ -351,6 +352,24 @@ $ http POST http://127.0.0.1:8001/execute command=get_objects_in_robot_view para
             "name": "cereal1",
             "pixel_count": 141,
             "type": "Object"
+        }
+    },
+    "status": "success"
+}
+```
+
+### Get distances between objects in the environment
+
+The parameter `source_object_name` takes an empty string when not passing any object name to it, and both
+`target_object_names` and `exclude_object_names` take an empty list when not passing any object names to them.
+
+```bash
+$ http POST http://127.0.0.1:8001/execute command=get_distance_between_objects params:='{"source_object_name": "", "target_object_names": [], "exclude_object_names": []}'
+{
+    "message": "Distance calculation is successful",
+    "payload": {
+        "pr2": {
+            "cereal1": 1.9653244007033546
         }
     },
     "status": "success"
