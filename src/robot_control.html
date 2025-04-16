@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Robot Control Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .command-panel {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #f9f9f9;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #fff;
+            min-height: 100px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .api-log {
+            color: #0066cc;
+            font-weight: bold;
+        }
+        .api-error {
+            color: #cc0000;
+            font-weight: bold;
+        }
+        .api-success {
+            color: #00aa00;
+            font-weight: bold;
+        }
+        .server-config {
+            background-color: #f0f8ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #b0d0e0;
+        }
+        .connection-status {
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .connected {
+            color: green;
+        }
+        .disconnected {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Robot Control Panel</h1>
+
+    <!-- Server Configuration -->
+    <div class="server-config">
+        <h2>Server Connection</h2>
+        <div style="display: flex; align-items: center;">
+            <div style="flex-grow: 1;">
+                <label for="serverAddress">API Server Address:</label>
+                <input type="text" id="serverAddress" value="http://localhost:8001" placeholder="http://server-ip:8001">
+            </div>
+            <div style="margin-left: 10px;">
+                <button id="testConnection">Test Connection</button>
+            </div>
+        </div>
+        <div>
+            <span id="connectionStatus" class="connection-status disconnected">Not connected</span>
+        </div>
+    </div>
+
+    <div id="result" class="result">Results will appear here...</div>
+
+    <!-- Move Robot -->
+    <div class="command-panel">
+        <h2>Move Robot</h2>
+        <form id="moveRobotForm">
+            <label for="moveX">X Coordinate:</label>
+            <input type="number" id="moveX" step="0.01" value="1.0">
+            
+            <label for="moveY">Y Coordinate:</label>
+            <input type="number" id="moveY" step="0.01" value="1.0">
+            
+            <label for="moveZ">Z Coordinate:</label>
+            <input type="number" id="moveZ" step="0.01" value="0.0">
+            
+            <button type="submit">Move Robot</button>
+        </form>
+    </div>
+
+    <!-- Spawn Objects -->
+    <div class="command-panel">
+        <h2>Spawn Objects</h2>
+        <form id="spawnObjectsForm">
+            <label for="objectChoice">Object Type:</label>
+            <select id="objectChoice">
+                <option value="cereal">Cereal</option>
+                <option value="milk">Milk</option>
+                <option value="spoon">Spoon</option>
+                <option value="bowl">Bowl</option>
+            </select>
+            
+            <label for="objectX">X Coordinate:</label>
+            <input type="number" id="objectX" step="0.01" value="1.4">
+            
+            <label for="objectY">Y Coordinate:</label>
+            <input type="number" id="objectY" step="0.01" value="1.0">
+            
+            <label for="objectZ">Z Coordinate:</label>
+            <input type="number" id="objectZ" step="0.01" value="0.95">
+            
+            <label for="objectColor">Color:</label>
+            <select id="objectColor">
+                <option value="">Default</option>
+                <option value="red">Red</option>
+                <option value="blue">Blue</option>
+                <option value="green">Green</option>
+                <option value="yellow">Yellow</option>
+                <option value="white">White</option>
+                <option value="black">Black</option>
+            </select>
+            
+            <button type="submit">Spawn Object</button>
+        </form>
+    </div>
+
+    <!-- Pickup and Place -->
+    <div class="command-panel">
+        <h2>Pickup and Place</h2>
+        <form id="pickupPlaceForm">
+            <label for="pickupObjectName">Object Name:</label>
+            <input type="text" id="pickupObjectName" value="cereal">
+            
+            <label for="placeX">Target X Coordinate:</label>
+            <input type="number" id="placeX" step="0.01" value="1.4">
+            
+            <label for="placeY">Target Y Coordinate:</label>
+            <input type="number" id="placeY" step="0.01" value="0.5">
+            
+            <label for="placeZ">Target Z Coordinate:</label>
+            <input type="number" id="placeZ" step="0.01" value="0.95">
+            
+            <label for="pickupArm">Arm to Use:</label>
+            <select id="pickupArm">
+                <option value="">Automatic</option>
+                <option value="left">Left</option>
+                <option value="right">Right</option>
+            </select>
+            
+            <button type="submit">Pickup and Place</button>
+        </form>
+        <div id="outputArea"></div>
+    </div>
+
+    <!-- Robot Perceive -->
+    <div class="command-panel">
+        <h2>Robot Perceive</h2>
+        <form id="perceiveForm">
+            <label for="perceptionArea">Perception Area:</label>
+            <input type="text" id="perceptionArea" value="table">
+            
+            <button type="submit">Perceive</button>
+        </form>
+    </div>
+
+ 
+     <!-- Detect Object -->
+    <div class="command-panel">
+        <h2>Detect Object</h2>
+        <form id="detectObjectForm">
+            <label for="objectTypeDetect">Object Type:</label>
+            <input type="text" id="objectTypeDetect" value="cup">
+            
+            <label for="detectionArea">Detection Area:</label>
+            <input type="text" id="detectionArea" value="table">
+            
+            <button type="submit">Detect Object</button>
+        </form>
+    </div>
+
+    <!-- Transport Object -->
+    <div class="command-panel">
+        <h2>Transport Object</h2>
+        <form id="transportForm">
+            <label for="transportObjectName">Object Name:</label>
+            <input type="text" id="transportObjectName" value="cup1">
+            
+            <label for="transportX">Target X Coordinate:</label>
+            <input type="number" id="transportX" step="0.01" value="0.5">
+            
+            <label for="transportY">Target Y Coordinate:</label>
+            <input type="number" id="transportY" step="0.01" value="0.5">
+            
+            <label for="transportZ">Target Z Coordinate:</label>
+            <input type="number" id="transportZ" step="0.01" value="0.8">
+            
+            <button type="submit">Transport Object</button>
+        </form>
+    </div>
+
+  
+
+   
+
+    <!-- Robot Camera View -->
+    <div class="command-panel" id="camera-panel">
+        <h2>Robot Camera View</h2>
+        <div class="camera-controls">
+            <label for="target-distance">Target Distance (meters):</label>
+            <input type="number" id="target-distance" value="2.0" min="0.1" max="10.0" step="0.1">
+            <button id="capture-btn">Capture Images</button>
+            <div id="error-message" class="error-message" style="display: none; color: red; margin-top: 10px;"></div>
+        </div>
+        
+        <div class="camera-views" style="display: flex; flex-wrap: wrap; justify-content: space-around; gap: 20px; margin-top: 20px;">
+            <div class="camera-view" style="flex: 1; min-width: 200px; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+                <h3>Color Image</h3>
+                <div id="color-loading" class="loading" style="text-align: center; font-style: italic; color: #888;">No image available</div>
+                <img id="color-image" style="display: none; max-width: 100%; height: auto; border: 1px solid #eee;" alt="Color camera view">
+            </div>
+            
+            <div class="camera-view" style="flex: 1; min-width: 200px; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+                <h3>Depth Image</h3>
+                <div id="depth-loading" class="loading" style="text-align: center; font-style: italic; color: #888;">No image available</div>
+                <img id="depth-image" style="display: none; max-width: 100%; height: auto; border: 1px solid #eee;" alt="Depth camera view">
+            </div>
+            
+            <div class="camera-view" style="flex: 1; min-width: 200px; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+                <h3>Segmentation Mask</h3>
+                <div id="segmentation-loading" class="loading" style="text-align: center; font-style: italic; color: #888;">No image available</div>
+                <img id="segmentation-image" style="display: none; max-width: 100%; height: auto; border: 1px solid #eee;" alt="Segmentation mask view">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Server address - automatically use current host if served directly
+        let defaultApiUrl;
+        
+        // Check if we're being served from our own server
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            // We're on a remote device - use the current host
+            defaultApiUrl = window.location.protocol + '//' + window.location.host + '/execute';
+        } else {
+            // Default for local development
+            defaultApiUrl = 'http://localhost:8001/execute';
+        }
+        
+        let API_URL = defaultApiUrl;
+        const resultDiv = document.getElementById('result');
+        const serverAddressInput = document.getElementById('serverAddress');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const testConnectionBtn = document.getElementById('testConnection');
+        
+        // Set initial value based on detection
+        serverAddressInput.value = defaultApiUrl;
+        
+        // Update API URL when server address changes
+        serverAddressInput.addEventListener('change', updateApiUrl);
+        
+        function updateApiUrl() {
+            let serverAddress = serverAddressInput.value.trim();
+            if (!serverAddress.endsWith('/execute')) {
+                // Make sure we handle both with and without trailing slash
+                if (serverAddress.endsWith('/')) {
+                    serverAddress = serverAddress + 'execute';
+                } else {
+                    serverAddress = serverAddress + '/execute';
+                }
+            }
+            API_URL = serverAddress;
+            console.log("API URL updated to:", API_URL);
+        }
+        
+        // Test connection button
+        testConnectionBtn.addEventListener('click', async function() {
+            updateApiUrl();
+            connectionStatus.textContent = "Testing connection...";
+            connectionStatus.className = "connection-status";
+            
+            try {
+                // Try to get commands list as a simple test
+                const testUrl = API_URL.replace('/execute', '/commands');
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    connectionStatus.textContent = "Connected ✓";
+                    connectionStatus.className = "connection-status connected";
+                    resultDiv.innerHTML = `<span class="api-success">Successfully connected to the server!</span><br><br>Available commands:<br>${formatJsonOutput(data)}`;
+                } else {
+                    connectionStatus.textContent = "Error: " + response.statusText;
+                    connectionStatus.className = "connection-status disconnected";
+                    resultDiv.innerHTML = `<span class="api-error">Error connecting to server: ${response.status} ${response.statusText}</span>`;
+                }
+            } catch (error) {
+                connectionStatus.textContent = "Failed to connect";
+                connectionStatus.className = "connection-status disconnected";
+                resultDiv.innerHTML = `<span class="api-error">Could not connect to the server at ${API_URL.replace('/execute', '')}<br>Error: ${error.message}</span><br><br>Please check:
+                <ul>
+                    <li>Is the server running?</li>
+                    <li>Is the address correct?</li>
+                    <li>Are both devices on the same network?</li>
+                    <li>Is port 8001 open in the firewall?</li>
+                </ul>`;
+            }
+        });
+        
+        // Helper function for API calls
+        async function callRobotApi(command, params) {
+            updateApiUrl(); // Always get the latest API URL
+            resultDiv.innerHTML = "<span class='api-log'>Executing command...</span>";
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        command: command,
+                        params: params
+                    }),
+                });
+                
+                // Update connection status based on response
+                if (response.ok) {
+                    connectionStatus.textContent = "Connected ✓";
+                    connectionStatus.className = "connection-status connected";
+                } else {
+                    connectionStatus.textContent = "Error: " + response.statusText;
+                    connectionStatus.className = "connection-status disconnected";
+                }
+                
+                const data = await response.json();
+                
+                // Format the response data with syntax highlighting
+                let formattedOutput = "";
+                
+                // Add status indicator
+                if (data.status === "success") {
+                    formattedOutput += `<span class="api-success">✓ SUCCESS:</span> ${data.message}<br><br>`;
+                } else if (data.status === "error") {
+                    formattedOutput += `<span class="api-error">✗ ERROR:</span> ${data.message}<br><br>`;
+                }
+                
+                // Add details of the response
+                formattedOutput += formatJsonOutput(data);
+                
+                resultDiv.innerHTML = formattedOutput;
+                return data;
+            } catch (error) {
+                connectionStatus.textContent = "Failed to connect";
+                connectionStatus.className = "connection-status disconnected";
+                resultDiv.innerHTML = `<span class="api-error">✗ ERROR: ${error.message}</span>`;
+                console.error('Error:', error);
+            }
+        }
+        
+        // Function to format JSON with some basic syntax highlighting
+        function formatJsonOutput(json) {
+            const formatted = JSON.stringify(json, null, 2);
+            return formatted.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, 
+                function (match) {
+                    let cls = 'number';
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) {
+                            cls = 'key';
+                            return `<span style="color: #7a3e9d;">${match}</span>`;
+                        } else {
+                            cls = 'string';
+                            return `<span style="color: #2e7d32;">${match}</span>`;
+                        }
+                    } else if (/true|false/.test(match)) {
+                        cls = 'boolean';
+                        return `<span style="color: #0277bd;">${match}</span>`;
+                    } else if (/null/.test(match)) {
+                        cls = 'null';
+                        return `<span style="color: #b71c1c;">${match}</span>`;
+                    } else {
+                        return `<span style="color: #0277bd;">${match}</span>`;
+                    }
+                }
+            );
+        }
+        
+        // Move Robot Form
+        document.getElementById('moveRobotForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const x = parseFloat(document.getElementById('moveX').value);
+            const y = parseFloat(document.getElementById('moveY').value);
+            const z = parseFloat(document.getElementById('moveZ').value);
+            
+            callRobotApi('move_robot', {
+                coordinates: [x, y, z]
+            });
+        });
+        
+        // Spawn Objects Form
+        document.getElementById('spawnObjectsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const objectChoice = document.getElementById('objectChoice').value;
+            const x = parseFloat(document.getElementById('objectX').value);
+            const y = parseFloat(document.getElementById('objectY').value);
+            const z = parseFloat(document.getElementById('objectZ').value);
+            const color = document.getElementById('objectColor').value;
+            
+            const params = {
+                object_choice: objectChoice,
+                coordinates: [x, y, z]
+            };
+            
+            if (color) {
+                params.color = color;
+            }
+            
+            callRobotApi('spawn_objects', params);
+        });
+        
+        // Pickup and Place Form
+        document.getElementById('pickupPlaceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const objectName = document.getElementById('pickupObjectName').value;
+            const x = parseFloat(document.getElementById('placeX').value);
+            const y = parseFloat(document.getElementById('placeY').value);
+            const z = parseFloat(document.getElementById('placeZ').value);
+            const arm = document.getElementById('pickupArm').value;
+            
+            callRobotApi('pickup_and_place', {
+                object_name: objectName,
+                target_location: [x, y, z],
+                arm: arm || null
+            });
+        });
+        
+        // Robot Perceive Form
+        document.getElementById('perceiveForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const area = document.getElementById('perceptionArea').value;
+            
+            callRobotApi('robot_perceive', {
+                perception_area: area
+            });
+        });
+        
+        // Look for Object Form
+        document.getElementById('lookForForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const objectName = document.getElementById('lookForObjectName').value;
+            
+            callRobotApi('look_for_object', {
+                object_name: objectName
+            });
+        });
+        
+        // Unpack Arms Form
+        document.getElementById('unpackArmsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callRobotApi('unpack_arms', {});
+        });
+        
+        // Detect Object Form
+        document.getElementById('detectObjectForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const objectType = document.getElementById('objectTypeDetect').value;
+            const area = document.getElementById('detectionArea').value;
+            
+            callRobotApi('detect_object', {
+                object_type: objectType,
+                detection_area: area
+            });
+        });
+        
+        // Transport Object Form
+        document.getElementById('transportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const objectName = document.getElementById('transportObjectName').value;
+            const x = parseFloat(document.getElementById('transportX').value);
+            const y = parseFloat(document.getElementById('transportY').value);
+            const z = parseFloat(document.getElementById('transportZ').value);
+            
+            callRobotApi('transport_object', {
+                object_name: objectName,
+                target_location: [x, y, z]
+            });
+        });
+        
+        // Kitchen Info Form
+        document.getElementById('kitchenInfoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callRobotApi('get_kitchen_info', {});
+        });
+        
+        // Camera Info Form
+        document.getElementById('cameraInfoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const cameraName = document.getElementById('cameraName').value;
+            
+            callRobotApi('get_camera_info', {
+                camera_name: cameraName
+            });
+        });
+
+        // Add event listener for table height form
+        document.getElementById('tableHeightForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Create a loading indicator
+            const resultDiv = document.getElementById('tableHeightResult');
+            resultDiv.innerHTML = 'Detecting table height...';
+            
+            // Send API request
+            fetch('/api/execute_command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    command: 'get_table_height',
+                    params: {}
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    resultDiv.innerHTML = `
+                        <p>Table Height: ${data.height} meters</p>
+                        <p>Status: ${data.message}</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p>Error: ${data.message}</p>
+                    `;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `Error: ${error.message}`;
+            });
+        });
+
+        // Camera functionality
+        const captureBtn = document.getElementById('capture-btn');
+        const targetDistanceInput = document.getElementById('target-distance');
+        const colorImage = document.getElementById('color-image');
+        const depthImage = document.getElementById('depth-image');
+        const segmentationImage = document.getElementById('segmentation-image');
+        const colorLoading = document.getElementById('color-loading');
+        const depthLoading = document.getElementById('depth-loading');
+        const segmentationLoading = document.getElementById('segmentation-loading');
+        const errorMessageDiv = document.getElementById('error-message');
+
+        // Add event listener to the capture button
+        captureBtn.addEventListener('click', function() {
+            // Show loading indicators
+            colorImage.style.display = 'none';
+            depthImage.style.display = 'none';
+            segmentationImage.style.display = 'none';
+            colorLoading.style.display = 'block';
+            depthLoading.style.display = 'block';
+            segmentationLoading.style.display = 'block';
+            errorMessageDiv.style.display = 'none';
+            
+            // Get the target distance
+            const targetDistance = targetDistanceInput.value;
+            
+            // Call the API to get camera images
+            callRobotApi('get_camera_images', { target_distance: targetDistance })
+                .then(response => {
+                    if (response.status === 'success' && response.images) {
+                        updateImages(response.images);
+                    } else {
+                        showCameraError(response.message || 'Failed to capture camera images');
+                    }
+                })
+                .catch(error => {
+                    showCameraError('Error: ' + error.message);
+                });
+        });
+
+        function updateImages(images) {
+            // Update color image
+            if (images.color_image) {
+                colorImage.src = 'data:image/png;base64,' + images.color_image;
+                colorImage.style.display = 'block';
+                colorLoading.style.display = 'none';
+            } else {
+                colorImage.style.display = 'none';
+                colorLoading.textContent = 'Color image not available';
+                colorLoading.style.display = 'block';
+            }
+            
+            // Update depth image
+            if (images.depth_image) {
+                depthImage.src = 'data:image/png;base64,' + images.depth_image;
+                depthImage.style.display = 'block';
+                depthLoading.style.display = 'none';
+            } else {
+                depthImage.style.display = 'none';
+                depthLoading.textContent = 'Depth image not available';
+                depthLoading.style.display = 'block';
+            }
+            
+            // Update segmentation mask
+            if (images.segmentation_mask) {
+                segmentationImage.src = 'data:image/png;base64,' + images.segmentation_mask;
+                segmentationImage.style.display = 'block';
+                segmentationLoading.style.display = 'none';
+            } else {
+                segmentationImage.style.display = 'none';
+                segmentationLoading.textContent = 'Segmentation mask not available';
+                segmentationLoading.style.display = 'block';
+            }
+        }
+
+        function showCameraError(message) {
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.style.display = 'block';
+            colorLoading.style.display = 'none';
+            depthLoading.style.display = 'none';
+            segmentationLoading.style.display = 'none';
+        }
+    </script>
+</body>
+</html> 
