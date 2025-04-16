@@ -39,6 +39,211 @@ class Response(TypedDict):
     message: str
     payload: Any = None
 
+
+def detect_object(object_name=None, location=None):
+    """
+    Detect an object in the robot's environment and return information about it.
+    
+    Parameters:
+        object_name (str): Name of the object to detect. If None, will detect any visible object.
+        location (dict or Pose): Location to search for objects. Can be a dictionary with 'position' 
+                                and optional 'orientation' keys, or a Pose object.
+    
+    Returns:
+        dict: A response object with the following fields:
+            - status (str): 'success' if object was detected, 'error' otherwise
+            - message (str): A description of the operation result
+            - payload (dict): Information about the detected object(s) if successful
+    """
+    try:
+        from pycram.datastructures.enums import DetectionTechnique, DetectionState
+        from pycram.designators.location_designator import Location
+        from pycram.datastructures.pose import Pose
+        
+        with simulated_robot:
+            # First, try to look in the general direction where objects might be
+            try:
+                # Get the world
+                world = get_world_safely()
+                if world is None:
+                    return {"status": "error", "message": "World is not initialized"}
+                
+                # Find a central pose to look at (any object that's not the robot)
+                central_pose = None
+                for obj in world.objects:
+                    if obj.name != "pr2" and obj.name not in ["kitchen", "apartment", "floor", "wall"]:
+                        central_pose = obj.pose
+                        break
+                
+                if central_pose:
+                    # Look at the object to orient the robot's camera
+                    LookAtAction(targets=[central_pose]).resolve().perform()
+            except Exception as e:
+                print(f"Warning: Could not orient robot camera: {str(e)}")
+            
+            # If object_name is provided, try to find it directly in the world
+            if object_name:
+                print(f"API: Looking for object with name: {object_name}")
+                matching_objects = []
+                
+                for obj in world.objects:
+                    if obj.name.lower() == object_name.lower():
+                        matching_objects.append(obj)
+                
+                if matching_objects:
+                    # Extract information about detected objects
+                    objects_info = []
+                    for obj in matching_objects:
+                        obj_info = {
+                            "name": obj.name,
+                            "type": str(obj.type if hasattr(obj, "type") else type(obj).__name__)
+                        }
+                        
+                        # Get object position
+                        try:
+                            pose = obj.pose
+                            if pose:
+                                position = pose.position
+                                obj_info["position"] = {
+                                    "x": float(position[0]),
+                                    "y": float(position[1]),
+                                    "z": float(position[2])
+                                }
+                                
+                                # Get dimensions if available
+                                if hasattr(obj, "dimensions"):
+                                    dims = obj.dimensions
+                                    obj_info["dimensions"] = {
+                                        "x": float(dims[0]),
+                                        "y": float(dims[1]),
+                                        "z": float(dims[2])
+                                    }
+                        except Exception as pos_error:
+                            print(f"Warning: Could not get position for {obj.name}: {str(pos_error)}")
+                        
+                        # Get color if available
+                        if hasattr(obj, "color"):
+                            obj_info["color"] = str(obj.color)
+                        
+                        objects_info.append(obj_info)
+                    
+                    return {
+                        "status": "success",
+                        "message": f"Successfully found object: {object_name}",
+                        "object": objects_info[0] if len(objects_info) == 1 else None,
+                        "objects": objects_info
+                    }
+            
+            # If we get here, either no object_name was provided or the object wasn't found directly
+            # So we'll use the DetectAction to find objects
+            
+            # Prepare object designator based on input
+            object_designator = None
+            if object_name:
+                object_designator = BelieveObject(names=[object_name])
+            
+            # Prepare location if provided (location and region are the same parameter in PyCRAM)
+            location_designator = None
+            if location:
+                try:
+                    # If location is already a Pose object, use it directly
+                    if isinstance(location, Pose):
+                        location_pose = location
+                    # If location is a dictionary, create a Pose from it
+                    elif isinstance(location, dict):
+                        position = location.get('position', [0, 0, 0])
+                        orientation = location.get('orientation', [0, 0, 0, 1])
+                        location_pose = Pose(position, orientation)
+                    else:
+                        # Try to convert to a Pose if it's something else
+                        location_pose = Pose(location)
+                    
+                    # Create a Location designator with the pose
+                    location_designator = Location(poses=[location_pose])
+                except Exception as loc_error:
+                    print(f"Warning: Could not create location designator: {str(loc_error)}")
+            
+            # Perform detection
+            print(f"API: Detecting objects using DetectAction")
+            try:
+                detected_objects = DetectAction(
+                    technique=DetectionTechnique.ALL,
+                    state=DetectionState.START,
+                    object_designator_description=object_designator,
+                    region=location_designator
+                ).resolve().perform()
+                
+                # Process detection results
+                if not detected_objects:
+                    return {
+                        "status": "error", 
+                        "message": f"No objects detected{' matching ' + object_name if object_name else ''}"
+                    }
+                
+                # Filter objects by name if specified
+                if object_name:
+                    detected_objects = [obj for obj in detected_objects if obj.name.lower() == object_name.lower()]
+                    if not detected_objects:
+                        return {
+                            "status": "error",
+                            "message": f"No objects detected matching '{object_name}'"
+                        }
+                
+                # Extract information about detected objects
+                objects_info = []
+                for obj in detected_objects:
+                    obj_info = {
+                        "name": obj.name,
+                        "type": str(obj.type if hasattr(obj, "type") else type(obj).__name__)
+                    }
+                    
+                    # Get object position
+                    try:
+                        if hasattr(obj, "get_pose"):
+                            pose = obj.get_pose()
+                            position = pose.position
+                            obj_info["position"] = {
+                                "x": float(position[0]),
+                                "y": float(position[1]),
+                                "z": float(position[2])
+                            }
+                    except Exception as pos_error:
+                        print(f"Warning: Could not get position for {obj.name}: {str(pos_error)}")
+                    
+                    # Get color if available
+                    if hasattr(obj, "color"):
+                        obj_info["color"] = str(obj.color)
+                    
+                    objects_info.append(obj_info)
+                
+                # Return success response with object information
+                if object_name and len(objects_info) == 1:
+                    return {
+                        "status": "success",
+                        "message": f"Successfully detected object: {object_name}",
+                        "object": objects_info[0]
+                    }
+                else:
+                    return {
+                        "status": "success",
+                        "message": f"Successfully detected {len(objects_info)} object(s)",
+                        "objects": objects_info
+                    }
+                
+            except Exception as detect_error:
+                return {
+                    "status": "error",
+                    "message": f"Detection failed: {str(detect_error)}"
+                }
+                
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "status": "error", 
+            "message": f"Error during object detection: {str(e)}"
+        }
+
 def look_at_object(obj_name: str) -> Response:
     """
     Make the robot look at the specified object.

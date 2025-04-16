@@ -73,7 +73,8 @@ from robot_actions_api import (
     demo_camera,
     get_robot_camera_images,
     calculate_object_distances,
-    look_at_object
+    look_at_object,
+    detect_object
 )
 
 # from camera import get_camera_images    
@@ -132,6 +133,9 @@ async def execute_command(data: dict = Body(...)):
             return result
         elif command == "look_at_object":
             result = look_at_object(**params)
+            return result
+        elif command == "detect_object":
+            result = detect_object(**params)
             return result
         else:
             return {"status": "error", "message": f"Unknown command: {command}"}
