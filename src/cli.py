@@ -357,6 +357,43 @@ def get_objects_in_robot_view():
     print(f"{response['status'].upper()}: {response['message']}")
 
 
+def get_distance_between_objects():
+    source_object_name = input(
+        "Enter the source object's name (leave empty to use all objects not in the exclude list): "
+    ).strip()
+    target_object_names = (
+        input(
+            "Enter the comma separated names of target objects (leave empty to use all objects not in the exclude list): "
+        )
+        .strip()
+        .split(",")
+    )
+    exclude_object_names = (
+        input(
+            "Enter comma separated names of objects to exclude (leave empty to use the default): "
+        )
+        .strip()
+        .split(",")
+    )
+
+    if len(source_object_name) == 0:
+        source_object_name = None
+
+    if len(target_object_names[0]) == 0:
+        target_object_names = None
+
+    if len(exclude_object_names[0]) == 0:
+        response = robo_cram.get_distance_between_objects(
+            source_object_name, target_object_names
+        )
+    else:
+        response = robo_cram.get_distance_between_objects(
+            source_object_name, target_object_names, exclude_object_names
+        )
+    [print(f"{k}: {v}") for k, v in response["payload"].items()]
+    print(f"{response['status'].upper()}: {response['message']}")
+
+
 def exit_simulation():
     response = robo_cram.exit_simulation()
     print(f"{response['status'].upper()}: {response['message']}")
@@ -378,7 +415,8 @@ def run():
         12: pick_and_place_location,
         13: capture_image,
         14: get_objects_in_robot_view,
-        15: exit_simulation,
+        15: get_distance_between_objects,
+        16: exit_simulation,
     }
     exit_choice = len(MENU)
 
@@ -403,7 +441,8 @@ def run():
             \r12) Pick an object and place it at a specific location
             \r13) Capture an image using robot's camera
             \r14) Get objects in robot's view
-            \r15) Exit simulation
+            \r15) Calculate distances between objects
+            \r16) Exit simulation
             """
         )
 
