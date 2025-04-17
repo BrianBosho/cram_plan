@@ -22,3 +22,12 @@ images/
 enhanced_images/
 src/images/
 src/enhanced_images/
+# lets stop tracking the unused files
+unused/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
