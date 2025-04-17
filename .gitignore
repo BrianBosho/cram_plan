@@ -17,3 +17,8 @@ venv/
 pycram/
 reference docs/
 env/
+# add images in the src images forlder and enhanced images in the src enhanced_images folder to the .gitignore file
+images/
+enhanced_images/
+src/images/
+src/enhanced_images/

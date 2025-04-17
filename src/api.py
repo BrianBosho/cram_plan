@@ -77,7 +77,8 @@ from robot_actions_api import (
     detect_object,
     move_and_rotate,
     move_torso,
-    park_arms
+    park_arms,
+    get_enhanced_camera_images
 )
 
 # from camera import get_camera_images    
@@ -131,6 +132,10 @@ async def execute_command(data: dict = Body(...)):
             target_distance = params.get("target_distance", 2.0)
             result = get_robot_camera_images(target_distance, world)
             return result
+        elif command == "get_enhanced_camera_images":
+            target_distance = params.get("target_distance", 2.0)
+            result = get_enhanced_camera_images(target_distance, world)
+            return result
         elif command == "calculate_object_distances":
             result = calculate_object_distances(**params, world=world)
             return result
@@ -172,7 +177,8 @@ async def list_commands():
             "calculate_object_distances",
             "look_at_object",
             "detect_object",
-            "park_arms"
+            "park_arms",
+            "get_enhanced_camera_images"
         ]
     }
 

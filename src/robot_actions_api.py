@@ -26,6 +26,9 @@ from pycram.datastructures.enums import Frame
 from io import BytesIO
 from typing import TypedDict, Any
 from utils.rotation import euler_to_quaternion
+import cv2
+import random
+
 
 from pycram.failures import (
     LookAtGoalNotReached,
@@ -834,7 +837,9 @@ def spawn_objects(object_choice=None, coordinates=None, color=None):
             obj_name = object_choice  # Use the choice as the name
         else:
             # Custom/generic object
-            obj_name = object_choice
+            # lets create an object nakem by appending a ranom number between 0 & 100 to the object_choice
+            name = object_choice + str(random.randint(0, 100))
+            obj_name = name
             obj_ontology = ObjectType.GENERIC
             obj_file = f"{object_choice}.stl"  # Assume filename matches object name
             
@@ -999,7 +1004,80 @@ def get_robot_camera_images(target_distance=2.0, world=None):
         if rgb_image is None:
             return {"status": "error", "message": "Failed to capture camera images"}
         
-        # Convert images to base64 strings
+        # Convert images to base64 strings - direct encoding without matplotlib
+        def encode_image(img):
+            if img is None:
+                return None
+                
+            # Convert to appropriate format for encoding
+            if len(img.shape) == 2:  # Depth image or grayscale
+                # Normalize to 0-255 range for depth images
+                normalized = ((img - img.min()) * (255.0 / (img.max() - img.min()))).astype(np.uint8)
+                # Convert to PNG using cv2 or PIL
+                success, buffer = cv2.imencode('.png', normalized)
+                img_str = base64.b64encode(buffer).decode('utf-8')
+                return img_str
+            else:  # RGB image
+                # Ensure RGB image is in correct format (0-255 uint8)
+                if img.dtype != np.uint8:
+                    img = (img * 255).astype(np.uint8)
+                success, buffer = cv2.imencode('.png', img)
+                img_str = base64.b64encode(buffer).decode('utf-8')
+                return img_str
+        
+        # Encode all three images
+        color_b64 = encode_image(rgb_image)
+        depth_b64 = encode_image(depth_image)
+        segmentation_b64 = encode_image(segmentation_mask)
+        
+        return {
+            "status": "success",
+            "message": "Camera images captured successfully",
+            "images": {
+                "color_image": color_b64,
+                "depth_image": depth_b64,
+                "segmentation_mask": segmentation_b64
+            }
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
+
+def get_enhanced_camera_images(target_distance=2.0, world=None):
+    """
+    Capture images from the robot's camera and return them as base64-encoded strings
+    with enhanced visualization using matplotlib.
+    
+    Args:
+        target_distance (float): Distance in meters to the target point
+        world: The simulation world object
+        
+    Returns:
+        dict: Result with enhanced encoded images
+    """
+    try:
+        # Convert target_distance to float if provided
+        if target_distance is not None:
+            target_distance = float(target_distance)
+        else:
+            target_distance = 2.0  # Default value
+            
+        # Import the capture function
+        from robot_actions_api import capture_camera_image
+        
+        # Capture images without displaying them
+        rgb_image, depth_image, segmentation_mask = capture_camera_image(
+            display=False, 
+            save_path=None,
+            target_distance=target_distance,
+            world=world
+        )
+        
+        if rgb_image is None:
+            return {"status": "error", "message": "Failed to capture camera images"}
+        
+        # Convert images to base64 strings using matplotlib for enhanced visualization
         def encode_image(img):
             if img is None:
                 return None
@@ -1037,7 +1115,7 @@ def get_robot_camera_images(target_distance=2.0, world=None):
         
         return {
             "status": "success",
-            "message": "Camera images captured successfully",
+            "message": "Enhanced camera images captured successfully",
             "images": {
                 "color_image": color_b64,
                 "depth_image": depth_b64,

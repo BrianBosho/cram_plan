@@ -7,7 +7,34 @@ url = "http://localhost:8001/execute"
 
 
 # def test camera
+# def test_camera():
+#     payload = {
+#         "command": "get_camera_images",
+#         "params": {
+#             "target_distance": 2.0
+#         }
+#     }
+#     response = requests.post(url, json=payload)
+#     print(response.json())
+# ... existing code ...
+
 def test_camera():
+    import requests
+    import base64
+    import os
+    from datetime import datetime
+    import cv2
+    import numpy as np
+    
+    # Create images directory if it doesn't exist
+    image_dir = "images"
+    if not os.path.exists(image_dir):
+        os.makedirs(image_dir)
+    
+    # Generate timestamp for unique filenames
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Make API request
     payload = {
         "command": "get_camera_images",
         "params": {
@@ -15,7 +42,31 @@ def test_camera():
         }
     }
     response = requests.post(url, json=payload)
-    print(response.json())
+    result = response.json()
+    
+    if result["status"] == "success":
+        # Save each image type
+        for img_type, img_data in result["images"].items():
+            if img_data:
+                # Decode base64 string
+                img_bytes = base64.b64decode(img_data)
+                
+                # Convert to numpy array
+                nparr = np.frombuffer(img_bytes, np.uint8)
+                
+                # Decode image
+                img = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
+                
+                # Save to file
+                filename = f"{image_dir}/{timestamp}_{img_type}.png"
+                cv2.imwrite(filename, img)
+                print(f"Saved {img_type} to {filename}")
+            else:
+                print(f"No data for {img_type}")
+    else:
+        print(f"Error: {result['message']}")
+    
+    return result
 
 # def test move robot
 def test_move_robot():
@@ -108,21 +159,67 @@ def test_park_arms():
     response = requests.post(url, json=payload)
     print(response.json())
 
+def test_enhanced_camera():
+    import requests
+    import base64
+    import os
+    from datetime import datetime
+    
+    # Create images directory if it doesn't exist
+    image_dir = "enhanced_images"
+    if not os.path.exists(image_dir):
+        os.makedirs(image_dir)
+    
+    # Generate timestamp for unique filenames
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Make API request
+    payload = {
+        "command": "get_enhanced_camera_images",
+        "params": {
+            "target_distance": 2.0
+        }
+    }
+    response = requests.post(url, json=payload)
+    result = response.json()
+    
+    if result["status"] == "success":
+        # Save each image type
+        for img_type, img_data in result["images"].items():
+            # Decode base64 string
+            img_bytes = base64.b64decode(img_data)
+            
+            # Save to file
+            filename = f"{image_dir}/{timestamp}_{img_type}.png"
+            with open(filename, "wb") as f:
+                f.write(img_bytes)
+            print(f"Saved enhanced {img_type} to {filename}")
+    else:
+        print(f"Error: {result['message']}")
+    
+    return result
 
 test_move = False
-test_camera_function = False
+test_camera_function = True
 test_pickup_and_place_function = False
 test_robot_perceive_function = False
 test_transport_object_function = False
 test_calculate_object_distances_function = False
-test_look_at_object_function = False
+test_look_at_object_function = True
 test_detect_object_function = False
 test_move_and_rotate_function = False
-test_move_torso_function = True
-test_park_arms_function = False
+test_move_torso_function = False
+test_park_arms_function = True
+test_enhanced_camera_function = True
+
+
 def main():
     if test_move == True:
         test_move_robot()
+    if test_park_arms_function == True:
+        test_park_arms()
+    if test_look_at_object_function == True:
+        test_look_at_object()
     if test_camera_function == True:
         test_camera()
     if test_pickup_and_place_function == True:
@@ -133,16 +230,15 @@ def main():
         test_transport_object()
     if test_calculate_object_distances_function == True:
         test_calculate_object_distances()
-    if test_look_at_object_function == True:
-        test_look_at_object()
+    
     if test_detect_object_function == True:
         test_detect_object()
     if test_move_and_rotate_function == True:
         test_move_and_rotate()
     if test_move_torso_function == True:
         test_move_torso()
-    if test_park_arms_function == True:
-        test_park_arms()
+    if test_enhanced_camera_function == True:
+        test_enhanced_camera()
 
 if __name__ == "__main__":
     main()
