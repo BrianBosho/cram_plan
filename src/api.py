@@ -48,16 +48,17 @@ def init_environment():
     if env_name == 'kitchen':
         # Spawn initial objects at specified locations
         objects_to_spawn = [
-            {"object_choice": "spoon", "coordinates": [1.4, 1, 0.95], "color": "blue"},
-            {"object_choice": "cereal", "coordinates": [1.4, 0.8, 0.95], "color": "red"},
-            {"object_choice": "milk", "coordinates": [1.4, 0.6, 0.95], "color": "green"}
+            {"object_choice": "spoon", "coordinates": [1.4, 1, 0.95], "color": "blue", "name": "spoon1"},
+            {"object_choice": "cereal", "coordinates": [1.4, 0.8, 0.95], "color": "red", "name": "cereal1"},
+            {"object_choice": "milk", "coordinates": [1.4, 0.6, 0.95], "color": "green", "name": "milk1"}
         ]
         
         for obj in objects_to_spawn:
             spawn_result = spawn_objects(
                 obj['object_choice'], 
                 obj['coordinates'], 
-                obj['color']
+                obj['color'],
+                obj['name']
             )
             print(f"Spawned {obj['color']} {obj['object_choice']}: {spawn_result}")
     

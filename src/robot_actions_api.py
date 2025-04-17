@@ -792,7 +792,7 @@ def transport_object(object_name=None, target_location=None, arm=None):
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
-def spawn_objects(object_choice=None, coordinates=None, color=None):
+def spawn_objects(object_choice=None, coordinates=None, color=None, name=None):
     """
     Non-interactive version of spawn_objects that creates objects based on parameters.
     
@@ -800,7 +800,7 @@ def spawn_objects(object_choice=None, coordinates=None, color=None):
         object_choice (str): "cereal", "milk", "spoon", "bowl", or a custom name
         coordinates (list): [x, y, z] coordinates for object placement
         color (str): Color name (e.g., "red", "blue") or None for default
-        
+        name (str): Custom name for the object or None for default
     Returns:
         dict: Information about the created object
     """
@@ -812,6 +812,10 @@ def spawn_objects(object_choice=None, coordinates=None, color=None):
             "spoon": (Spoon, "spoon.stl"),
             "bowl": (Bowl, "bowl.stl")
         }
+        # list of colors
+        colors_list = ["red", "blue", "green", "yellow" "black"]
+        random_color = random.choice(colors_list)
+
         
         # Default values
         if object_choice is None:
@@ -819,6 +823,12 @@ def spawn_objects(object_choice=None, coordinates=None, color=None):
             
         if coordinates is None:
             coordinates = [1.4, 1.0, 0.95]  # Default position
+
+        if name is None:
+            name = object_choice + str(random.randint(0, 100))
+
+        if color is None:
+            color = random_color
             
         # Parse coordinates
         try:
@@ -830,15 +840,16 @@ def spawn_objects(object_choice=None, coordinates=None, color=None):
             
         # Handle color
         color_wrapper = ColorWrapper(color) if color else None
+
+        print(f"API: Spawning object {object_choice} at {coordinates} with color {color} and name {name}")
         
         # Create the object
         if object_choice in object_types:
             obj_ontology, obj_file = object_types[object_choice]
-            obj_name = object_choice  # Use the choice as the name
+            obj_name = name  # Use the choice as the name
         else:
             # Custom/generic object
             # lets create an object nakem by appending a ranom number between 0 & 100 to the object_choice
-            name = object_choice + str(random.randint(0, 100))
             obj_name = name
             obj_ontology = ObjectType.GENERIC
             obj_file = f"{object_choice}.stl"  # Assume filename matches object name

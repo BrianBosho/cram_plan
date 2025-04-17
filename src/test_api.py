@@ -199,19 +199,31 @@ def test_enhanced_camera():
     
     return result
 
+# test spawn objects
+def test_spawn_objects():
+    payload = {
+        "command": "spawn_objects",
+        "params": {
+            "object_choice": "cereal",
+            "coordinates": [1.4, 0.4, 0.95],
+        }
+    }
+    response = requests.post(url, json=payload)
+    print(response.json())
+
 test_move = False
-test_camera_function = True
+test_camera_function = False
 test_pickup_and_place_function = False
-test_robot_perceive_function = False
+test_robot_perceive_function = True
 test_transport_object_function = False
 test_calculate_object_distances_function = False
-test_look_at_object_function = True
+test_look_at_object_function = False
 test_detect_object_function = False
 test_move_and_rotate_function = False
 test_move_torso_function = False
-test_park_arms_function = True
-test_enhanced_camera_function = True
-
+test_park_arms_function = False
+test_enhanced_camera_function = False
+test_spawn_objects_function = False
 
 def main():
     if test_move == True:
@@ -239,6 +251,8 @@ def main():
         test_move_torso()
     if test_enhanced_camera_function == True:
         test_enhanced_camera()
+    if test_spawn_objects_function == True:
+        test_spawn_objects()
 
 if __name__ == "__main__":
     main()
