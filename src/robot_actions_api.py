@@ -25,6 +25,7 @@ from pycram.robot_description import RobotDescription
 from pycram.datastructures.enums import Frame
 from io import BytesIO
 from typing import TypedDict, Any
+from utils.rotation import euler_to_quaternion
 
 from pycram.failures import (
     LookAtGoalNotReached,
@@ -1048,7 +1049,7 @@ def get_robot_camera_images(target_distance=2.0, world=None):
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
-def move_and_rotate(location=None, orientation=None):
+def move_and_rotate(location=None,angle=None):
     """
     Move robot to specified location and/or rotate to specified orientation.
     
@@ -1087,6 +1088,11 @@ def move_and_rotate(location=None, orientation=None):
             if len(location) != 3:
                 return {"status": "error", "message": "Location must be a list of 3 values [x, y, z]"}
             location = [float(val) for val in location]
+
+        if angle is None:
+            orientation = current_orientation
+        else:
+            orientation = euler_to_quaternion(0, 0, angle)
             
         if orientation is None:
             orientation = current_orientation
@@ -1112,6 +1118,101 @@ def move_and_rotate(location=None, orientation=None):
             "message": f"Robot moved to coordinates {location} with orientation {orientation}",
             "position": location,
             "orientation": orientation
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
+
+def move_torso(position="high"):
+    """
+    Move the robot's torso to a specified position.
+    
+    Args:
+        position (str): Position to move the torso to. Options: "low", "high".
+                       Default is "high".
+        
+    Returns:
+        dict: Result of the operation
+    """
+    try:
+        # Map string position to TorsoState enum
+        position_map = {
+            "low": TorsoState.LOW,
+            "high": TorsoState.HIGH
+        }
+        
+        # Validate input
+        position = position.lower() if isinstance(position, str) else "high"
+        if position not in position_map:
+            return {
+                "status": "error", 
+                "message": f"Invalid torso position: {position}. Valid options are: low, high."
+            }
+            
+        torso_state = position_map[position]
+        
+        with simulated_robot:
+            print(f"API: Moving torso to {position} position")
+            move_torso_action = MoveTorsoAction([torso_state]).resolve()
+            move_torso_action.perform()
+            print(f"API: Torso moved to {position} position")
+        
+        return {
+            "status": "success",
+            "message": f"Torso moved to {position} position",
+            "position": position
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
+
+def park_arms(arm=None):
+    """
+    Move the robot's arm(s) to the pre-defined parking position.
+    
+    Args:
+        arm (str): Arm to park. Options: "left", "right", or None for both arms.
+                  Default is None (both arms).
+        
+    Returns:
+        dict: Result of the operation
+    """
+    try:
+        # Map string arm to Arms enum
+        arm_map = {
+            "left": Arms.LEFT,
+            "right": Arms.RIGHT,
+            "both": [Arms.LEFT, Arms.RIGHT]
+        }
+        
+        # Determine which arms to park
+        arms_to_park = []
+        if arm is None or arm.lower() == "both":
+            arms_to_park = [Arms.LEFT, Arms.RIGHT]
+        elif arm.lower() in arm_map:
+            arms_to_park = [arm_map[arm.lower()]]
+        else:
+            return {
+                "status": "error", 
+                "message": f"Invalid arm: {arm}. Valid options are: left, right, both."
+            }
+        
+        with simulated_robot:
+            print(f"API: Parking arm(s): {arm if arm else 'both'}")
+            
+            # Park each arm
+            for arm_to_park in arms_to_park:
+                park_action = ParkArmsAction([arm_to_park]).resolve()
+                park_action.perform()
+                
+            print(f"API: Arm(s) parked successfully")
+        
+        return {
+            "status": "success",
+            "message": f"Successfully parked arm(s): {arm if arm else 'both'}",
+            "arm": arm if arm else "both"
         }
     except Exception as e:
         import traceback

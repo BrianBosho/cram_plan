@@ -75,7 +75,9 @@ from robot_actions_api import (
     calculate_object_distances,
     look_at_object,
     detect_object,
-    move_and_rotate
+    move_and_rotate,
+    move_torso,
+    park_arms
 )
 
 # from camera import get_camera_images    
@@ -141,6 +143,12 @@ async def execute_command(data: dict = Body(...)):
         elif command == "move_and_rotate":
             result = move_and_rotate(**params)
             return result
+        elif command == "move_torso":
+            result = move_torso(**params)
+            return result
+        elif command == "park_arms":
+            result = park_arms(**params)
+            return result
         else:
             return {"status": "error", "message": f"Unknown command: {command}"}
     except Exception as e:
@@ -158,7 +166,13 @@ async def list_commands():
             "pickup_and_place",
             "robot_perceive",
             "transport_object",
-            "get_camera_images"
+            "get_camera_images",
+            "move_and_rotate",
+            "move_torso",
+            "calculate_object_distances",
+            "look_at_object",
+            "detect_object",
+            "park_arms"
         ]
     }
 

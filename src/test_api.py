@@ -3,7 +3,7 @@ from utils.rotation import euler_to_quaternion
 
 url = "http://localhost:8001/execute"
 
-orientation = euler_to_quaternion(0, 0, 120)
+# orientation = euler_to_quaternion(0, 0, 120)
 
 
 # def test camera
@@ -23,7 +23,7 @@ def test_move_robot():
         "command": "move_robot",
         "params": {"coordinates": [0, 0, 0]}
     }
-    response = requests.post(url, json=payload)
+    response = requests.post(url, json=payload) 
     print(response.json())
 
 # test pickup and place
@@ -84,10 +84,30 @@ def test_detect_object():
 def test_move_and_rotate():
     payload = {
         "command": "move_and_rotate",
-        "params": {"location": [0, 0, 0], "orientation": orientation}
+        "params": {"location": [0, 0, 0], "angle": 60}
     }
     response = requests.post(url, json=payload)
     print(response.json())
+
+# test move torso
+def test_move_torso():
+    payload = {
+        "command": "move_torso",
+        "params": {"position": "high"}    
+    }
+    response = requests.post(url, json=payload)
+    print(response.json())  
+
+
+# test park arms    
+def test_park_arms():
+    payload = {
+        "command": "park_arms",
+        "params": {}
+    }
+    response = requests.post(url, json=payload)
+    print(response.json())
+
 
 test_move = False
 test_camera_function = False
@@ -97,9 +117,9 @@ test_transport_object_function = False
 test_calculate_object_distances_function = False
 test_look_at_object_function = False
 test_detect_object_function = False
-test_move_and_rotate_function = True
-
-
+test_move_and_rotate_function = False
+test_move_torso_function = True
+test_park_arms_function = False
 def main():
     if test_move == True:
         test_move_robot()
@@ -119,6 +139,10 @@ def main():
         test_detect_object()
     if test_move_and_rotate_function == True:
         test_move_and_rotate()
+    if test_move_torso_function == True:
+        test_move_torso()
+    if test_park_arms_function == True:
+        test_park_arms()
 
 if __name__ == "__main__":
     main()
