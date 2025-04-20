@@ -1358,3 +1358,58 @@ def park_arms(arm=None):
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
+    
+import itertools  # Add this import if not already present
+
+def calculate_relative_distances(object_name_1, object_name_2, world=None):
+    """
+    Calculate the relative distances between two objects in the world.
+
+    Parameters:
+    -----------
+    object_name_1 : str
+        Name of the first object.
+    object_name_2 : str
+        Name of the second object.
+    world : object or None
+        The world object containing all objects.
+
+    Returns:
+    --------
+    dict
+        Dictionary with dx, dy, dz, and euclidean distance.
+        Example: {'dx': ..., 'dy': ..., 'dz': ..., 'euclidean': ...}
+        If either object is not found, returns an error message.
+    """
+    if world is None:
+        return {"status": "error", "message": "World is not initialized."}
+
+    obj1 = world.get_object_by_name(object_name_1)
+    obj2 = world.get_object_by_name(object_name_2)
+
+    if obj1 is None:
+        return {"status": "error", "message": f"Object '{object_name_1}' not found."}
+    if obj2 is None:
+        return {"status": "error", "message": f"Object '{object_name_2}' not found."}
+
+    pos1 = obj1.get_position()
+    pos2 = obj2.get_position()
+
+    dx = pos2.x - pos1.x
+    dy = pos2.y - pos1.y
+    dz = pos2.z - pos1.z
+    # lets roudn the values to 2 decimal places
+    dx = round(dx, 3)
+    dy = round(dy, 3)
+    dz = round(dz, 3)
+    euclidean = np.sqrt(dx**2 + dy**2 + dz**2)
+
+    return {
+        "status": "success",
+        "object_1": object_name_1,
+        "object_2": object_name_2,
+        "dx": dx,
+        "dy": dy,
+        "dz": dz,
+        "euclidean": euclidean
+    }

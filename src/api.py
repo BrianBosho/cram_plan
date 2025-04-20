@@ -80,7 +80,8 @@ from robot_actions_api import (
     move_torso,
     park_arms,
     get_enhanced_camera_images,
-    get_robot_pose
+    get_robot_pose,
+    calculate_relative_distances
 )
 
 # from camera import get_camera_images    
@@ -158,6 +159,9 @@ async def execute_command(data: dict = Body(...)):
             return result
         elif command == "get_robot_pose":
             result = get_robot_pose(**params)
+            return result
+        elif command == "calculate_relative_distances":
+            result = calculate_relative_distances(**params, world=world)
             return result
         else:
             return {"status": "error", "message": f"Unknown command: {command}"}

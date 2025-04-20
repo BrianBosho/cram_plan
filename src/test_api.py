@@ -243,6 +243,32 @@ def test_spawn_objects():
     response = requests.post(url, json=payload)
     print(response.json())
 
+
+def test_calculate_relative_distances():
+    """
+    Test the calculate_relative_distances API endpoint.
+
+    Returns:
+        dict: The JSON result from the server.
+    """
+    payload = {
+        "command": "calculate_relative_distances",
+        "params": {
+            "object_name_1": "cereal1",
+            "object_name_2": "spoon1"
+        }
+    }
+    response = requests.post(url, json=payload)
+    result = response.json()
+    print(result)
+    return result
+
+
+
+# In main(), add:
+    
+
+
 test_move = False
 test_camera_function = False
 test_pickup_and_place_function = False
@@ -256,7 +282,9 @@ test_move_torso_function = False
 test_park_arms_function = False
 test_enhanced_camera_function = False
 test_spawn_objects_function = False
-test_robot_pose_function = True
+test_robot_pose_function = False
+# To enable the test, set the flag to True:
+test_calculate_relative_distances_function = True
 
 def main():
     if test_move == True:
@@ -288,6 +316,8 @@ def main():
         test_spawn_objects()
     if test_robot_pose_function == True:
         test_robot_pose()
+    if test_calculate_relative_distances_function == True:
+        test_calculate_relative_distances()
 
 if __name__ == "__main__":
     main()
