@@ -714,6 +714,158 @@ None
 - Uses the `simulated_robot` context manager for safe access
 - Returns position as a 3-element list and orientation as a 4-element quaternion list
 
+### 16. get_placement_surfaces
+
+Returns information about available surfaces in the environment where objects can be placed.
+
+**Source**: `robot_actions_api.py`
+
+#### Parameters
+
+None
+
+#### Return Value
+
+**Success Response**:
+```json
+{
+  "status": "success",
+  "message": "Retrieved all available surfaces",
+  "surfaces": {
+    "surface_name1": {
+      "description": "string",
+      "position": [x, y, z],
+      "dimensions": [width, depth, height],
+      "recommended_for": ["object_type1", "object_type2", ...]
+    },
+    "surface_name2": {
+      ...
+    }
+  }
+}
+```
+
+**Error Response**:
+```json
+{
+  "status": "error",
+  "message": "Error message"
+}
+```
+
+#### Error Conditions
+- If the environment is not initialized
+- Any exception during surface data retrieval
+
+#### Implementation Notes
+- Provides information about surfaces where objects can be placed
+- Each surface entry includes position, dimensions, and recommendations for object types
+- Surface data comes from a predefined configuration
+- Some surfaces have specific purposes (e.g., countertops for food preparation)
+
+### 17. spawn_in_area
+
+Spawns an object on a specific named surface in the environment.
+
+**Source**: `robot_actions_api.py`
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `object_choice` | string | No | "bowl" | Type of object to spawn |
+| `surface_name` | string | Yes | N/A | Name of the surface to place the object on |
+| `color` | string | No | Random | Color for the object |
+| `name` | string | No | Auto-generated | Custom name for the object |
+| `offset_x` | number | No | 0.0 | X-axis offset from the center of the surface |
+| `offset_y` | number | No | 0.0 | Y-axis offset from the center of the surface |
+
+#### Return Value
+
+**Success Response**: 
+```json
+{
+  "status": "success",
+  "message": "Object '{obj_name}' created successfully on {surface_name}",
+  "object": {
+    "name": "string",
+    "type": "string",
+    "pose": [number, number, number],
+    "color": "string"
+  }
+}
+```
+
+**Error Response**:
+```json
+{
+  "status": "error",
+  "message": "Error message"
+}
+```
+
+#### Error Conditions
+- If the specified surface name doesn't exist
+- If object creation fails
+- Any exception during the spawning process
+
+#### Implementation Notes
+- Uses the surface's position and applies the specified offset
+- Automatically adjusts the z-coordinate to be slightly above the surface
+- Integrates with the existing object spawning system
+- Allows for precise object placement in the environment
+
+### 18. pick_and_place_on_surface
+
+Picks up an object and places it on a specific named surface.
+
+**Source**: `robot_actions_api.py`
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `object_name` | string | Yes | N/A | Name of the object to pick up |
+| `surface_name` | string | Yes | N/A | Name of the surface to place the object on |
+| `offset_x` | number | No | 0.0 | X-axis offset from the center of the surface |
+| `offset_y` | number | No | 0.0 | Y-axis offset from the center of the surface |
+| `arm` | string | No | Auto-select | Which arm to use ('left', 'right', or null for automatic) |
+
+#### Return Value
+
+**Success Response**:
+```json
+{
+  "status": "success",
+  "message": "Successfully picked up {object_name} and placed on {surface_name}",
+  "object": "string",
+  "surface": "string",
+  "position": [number, number, number],
+  "arm_used": "string"
+}
+```
+
+**Error Response**:
+```json
+{
+  "status": "error",
+  "message": "Error message"
+}
+```
+
+#### Error Conditions
+- If the object is not found in the world
+- If the specified surface doesn't exist
+- If the pickup or placement fails
+- Any exception during the operation
+
+#### Implementation Notes
+- Combines object manipulation with surface knowledge
+- Uses the surface's position data and applies offsets for precise placement
+- Automatically adjusts the z-coordinate to be slightly above the surface
+- Integrates with the existing pickup and place system
+- Parks arms after completing the operation
+
 ## API Server Implementation
 
 The API server (`api.py`) uses FastAPI to expose the `/execute` endpoint that routes requests to the appropriate function in `robot_actions_api.py`. It also initializes the environment at startup.
