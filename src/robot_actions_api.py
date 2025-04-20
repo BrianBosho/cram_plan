@@ -28,6 +28,8 @@ from typing import TypedDict, Any
 from utils.rotation import euler_to_quaternion
 import cv2
 import random
+# import believe 
+from pycram.designators.object_designator import BelieveObject
 
 
 from pycram.failures import (
@@ -42,6 +44,55 @@ class Response(TypedDict):
     status: str
     message: str
     payload: Any = None
+
+
+
+# get the position and orientation of the robot
+# from pycram.designators import ObjectDesignatorDescription
+# from pycram.simulation import simulated_robot
+import traceback
+
+# get the position and orientation of the robot
+def get_robot_pose():
+    """
+    Get the current pose of the PR2 in the simulation.
+
+    Returns:
+        dict: {
+            "status": "success",
+            "position": [x, y, z],
+            "orientation": [qx, qy, qz, qw]
+        }
+        or on error:
+        {
+            "status": "error",
+            "message": "..."
+        }
+    """
+    try:
+        with simulated_robot:
+            # resolve the PR2 object
+            robot_obj = ObjectDesignatorDescription(names=["pr2"]).resolve()
+            if robot_obj is None:
+                return {"status": "error", "message": "Could not resolve PR2 in simulation."}
+
+            # pull out its Pose
+            pose = robot_obj.pose
+            pos = pose.position_as_list()
+            ori = pose.orientation_as_list()
+
+        return {
+            "status": "success",
+            "position": [float(pos[0]), float(pos[1]), float(pos[2])],
+            "orientation": [
+                float(ori[0]), float(ori[1]), float(ori[2]), float(ori[3])
+            ]
+        }
+
+    except Exception as e:
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
+
 
 
 def detect_object(object_name=None, location=None):

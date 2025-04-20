@@ -3,20 +3,6 @@ from utils.rotation import euler_to_quaternion
 
 url = "http://localhost:8001/execute"
 
-# orientation = euler_to_quaternion(0, 0, 120)
-
-
-# def test camera
-# def test_camera():
-#     payload = {
-#         "command": "get_camera_images",
-#         "params": {
-#             "target_distance": 2.0
-#         }
-#     }
-#     response = requests.post(url, json=payload)
-#     print(response.json())
-# ... existing code ...
 
 def test_camera():
     import requests
@@ -68,11 +54,57 @@ def test_camera():
     
     return result
 
+# def test_robot pose
+import requests
+
+def test_robot_pose():
+    """
+    Test the get_robot_pose API endpoint.
+
+    Args:
+        url: Base URL of your robot API (e.g. "http://localhost:8001/execute")
+
+    Returns:
+        dict: The JSON result from the server.
+    """
+    payload = {
+        "command": "get_robot_pose",
+        "params": {}
+    }
+
+    # 1) Fire off the request
+    resp = requests.post(url, json=payload)
+    resp.raise_for_status()
+
+    # 2) Parse JSON
+    result = resp.json()
+
+    # 3) Check status
+    if result.get("status") != "success":
+        print(f"Error from server: {result.get('message')}")
+        return result
+
+    # 4) Extract and validate pose fields
+    pos = result.get("position")
+    ori = result.get("orientation")
+
+    # Basic sanity checks
+    assert isinstance(pos, list) and len(pos) == 3, f"Position malformed: {pos}"
+    assert isinstance(ori, list) and len(ori) == 4, f"Orientation malformed: {ori}"
+
+    # 5) Print out for human inspection
+    print(f"Robot position: {pos}")
+    print(f"Robot orientation: {ori}")
+    print("✅ get_robot_pose returned a valid 3‑vector position and 4‑vector orientation.")
+
+    return result
+
+
 # def test move robot
 def test_move_robot():
     payload = {
         "command": "move_robot",
-        "params": {"coordinates": [0, 0, 0]}
+        "params": {"coordinates": [0, 1, 0]}
     }
     response = requests.post(url, json=payload) 
     print(response.json())
@@ -214,7 +246,7 @@ def test_spawn_objects():
 test_move = False
 test_camera_function = False
 test_pickup_and_place_function = False
-test_robot_perceive_function = True
+test_robot_perceive_function = False
 test_transport_object_function = False
 test_calculate_object_distances_function = False
 test_look_at_object_function = False
@@ -224,6 +256,7 @@ test_move_torso_function = False
 test_park_arms_function = False
 test_enhanced_camera_function = False
 test_spawn_objects_function = False
+test_robot_pose_function = True
 
 def main():
     if test_move == True:
@@ -253,6 +286,8 @@ def main():
         test_enhanced_camera()
     if test_spawn_objects_function == True:
         test_spawn_objects()
+    if test_robot_pose_function == True:
+        test_robot_pose()
 
 if __name__ == "__main__":
     main()
