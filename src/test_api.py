@@ -263,146 +263,6 @@ def test_calculate_relative_distances():
     print(result)
     return result
 
-def test_kitchen_surfaces():
-    """Test the kitchen surfaces API endpoints with graceful failure handling."""
-    results = {}
-    
-    # Test getting all placement surfaces
-    print("\nTesting get_placement_surfaces...")
-    try:
-        payload = {
-            "command": "get_placement_surfaces",
-            "params": {}
-        }
-        response = requests.post(url, json=payload)
-        result = response.json()
-        results["get_placement_surfaces"] = result
-        
-        if result["status"] == "success":
-            print(f"Found {len(result['surfaces'])} available surfaces:")
-            for surface, info in result["surfaces"].items():
-                position_str = str(info.get("position", "None"))
-                dimensions_str = str(info.get("dimensions", "None"))
-                print(f"- {surface}: {info.get('description', 'No description')}")
-                print(f"  Position: {position_str}")
-                print(f"  Dimensions: {dimensions_str}")
-        else:
-            print(f"Error: {result['message']}")
-    except Exception as e:
-        print(f"Exception during get_placement_surfaces test: {str(e)}")
-        results["get_placement_surfaces"] = {"status": "error", "message": str(e)}
-    
-    # Test spawning an object on a surface
-    print("\nTesting spawn_on_surface...")
-    spawned_object = None
-    try:
-        payload = {
-            "command": "spawn_on_surface",
-            "params": {
-                "object_type": "cereal",
-                "surface_name": "kitchen_island_surface",
-                "object_name": "cereal_test_1", 
-                "color": "blue"
-            }
-        }
-        response = requests.post(url, json=payload)
-        result = response.json()
-        results["spawn_on_surface"] = result
-        
-        if result["status"] == "success":
-            print(f"Successfully spawned object: {result['message']}")
-            spawned_object = result['object']['name']
-            print(f"Object name: {spawned_object}")
-            print(f"Object position: {result['object']['position']}")
-        else:
-            print(f"Error: {result['message']}")
-    except Exception as e:
-        print(f"Exception during spawn_on_surface test: {str(e)}")
-        results["spawn_on_surface"] = {"status": "error", "message": str(e)}
-    
-    # Try alternate spawn with explicit creation of cereal object
-    if not spawned_object:
-        print("\nTrying alternate spawn method...")
-        try:
-            payload = {
-                "command": "spawn_objects",
-                "params": {
-                    "object_choice": "cereal",
-                    "coordinates": [-1.0675, 1.7192, 1.05],  # kitchen_island_surface position + height offset
-                    "color": "blue",
-                    "name": "cereal_test_2"
-                }
-            }
-            response = requests.post(url, json=payload)
-            result = response.json()
-            results["spawn_objects_fallback"] = result
-            
-            if result["status"] == "success":
-                print(f"Successfully spawned object using alternate method: {result['message']}")
-                spawned_object = result['object']['name']
-            else:
-                print(f"Error with alternate method: {result['message']}")
-        except Exception as e:
-            print(f"Exception during alternate spawn test: {str(e)}")
-            results["spawn_objects_fallback"] = {"status": "error", "message": str(e)}
-            
-    # Test getting objects on a surface
-    print("\nTesting get_objects_on_surface...")
-    try:
-        payload = {
-            "command": "get_objects_on_surface",
-            "params": {
-                "surface_name": "sink_area_surface"
-            }
-        }
-        response = requests.post(url, json=payload)
-        result = response.json()
-        results["get_objects_on_surface"] = result
-        
-        if result["status"] == "success":
-            print(f"Found {result['count']} objects on kitchen_island_surface:")
-            for obj in result['objects']:
-                print(f"- {obj['name']} at position {obj['position']}")
-        else:
-            print(f"Error: {result['message']}")
-    except Exception as e:
-        print(f"Exception during get_objects_on_surface test: {str(e)}")
-        results["get_objects_on_surface"] = {"status": "error", "message": str(e)}
-    
-    # Test place_object_on_surface if we have a spawned object
-    if spawned_object:
-        print("\nTesting place_object_on_surface...")
-        try:
-            payload = {
-                "command": "place_object_on_surface",
-                "params": {
-                    "object_name": spawned_object,
-                    "surface_name": "table_area_main",
-                    "offset_x": 0.1,
-                    "offset_y": 0.1
-                }
-            }
-            response = requests.post(url, json=payload)
-            result = response.json()
-            results["place_object_on_surface"] = result
-            
-            if result["status"] == "success":
-                print(f"Successfully placed object: {result['message']}")
-            else:
-                print(f"Error placing object: {result['message']}")
-        except Exception as e:
-            print(f"Exception during place_object_on_surface test: {str(e)}")
-            results["place_object_on_surface"] = {"status": "error", "message": str(e)}
-    
-    # Give a summary of all test results
-    print("\n----- Test Results Summary -----")
-    for test_name, result in results.items():
-        status = result.get("status", "unknown")
-        print(f"{test_name}: {status}")
-    
-    return results
-
-
 def test_get_placement_surfaces():
     """Test the get_placement_surfaces API endpoint."""
     print("\nTesting get_placement_surfaces...")
@@ -429,124 +289,13 @@ def test_get_placement_surfaces():
     
     return result
 
-def test_spawn_on_surface():
-    """Test the spawn_on_surface API endpoint."""
-    print("\nTesting spawn_on_surface...")
-    
-    # Choose a reliable surface to test with
-    surface_name = "table_area_main"
-    
-    payload = {
-        "command": "spawn_on_surface",
-        "params": {
-            "object_type": "cereal",
-            "surface_name": surface_name,
-            "object_name": f"cereal_test_1",  # Unique name
-            "color": "blue",
-            "offset_x": 0.1,  # Small offset to avoid collision with other objects
-            "offset_y": 0.1
-        }
-    }
-    response = requests.post(url, json=payload)
-    result = response.json()
-    
-    if result["status"] == "success":
-        print(f"Successfully spawned object: {result['message']}")
-        print(f"Object name: {result['object']['name']}")
-        print(f"Object position: {result['object']['position']}")
-    else:
-        print(f"Error: {result['message']}")
-    
-    return result
-
-def test_place_object_on_surface():
-    """Test the place_object_on_surface API endpoint."""
-    print("\nTesting place_object_on_surface...")
-    
-    # First, spawn an object to work with
-    spawn_result = test_spawn_objects()
-    if spawn_result["status"] != "success":
-        print("Failed to spawn test object, can't continue")
-        return {"status": "error", "message": "Failed to create test object"}
-    
-    object_name = spawn_result["object"]["name"]
-    print(f"Created test object: {object_name}")
-    
-    # Now place it on a surface
-    surface_name = "table_area_main"
-    payload = {
-        "command": "place_object_on_surface",
-        "params": {
-            "object_name": object_name,
-            "surface_name": surface_name,
-            "offset_x": 0.1,
-            "offset_y": 0.1
-        }
-    }
-    response = requests.post(url, json=payload)
-    result = response.json()
-    
-    if result["status"] == "success":
-        print(f"Successfully placed object on {surface_name}: {result['message']}")
-        if "position" in result:
-            print(f"New position: {result['position']}")
-    else:
-        print(f"Error: {result['message']}")
-    
-    return result
-
-def test_get_objects_on_surface():
-    """Test the get_objects_on_surface API endpoint."""
-    print("\nTesting get_objects_on_surface...")
-    
-    # First, let's spawn an object on a surface to ensure there's something to detect
-    surface_name = "sink_area_surface"
-    
-    # Spawn an object on the surface
-    spawn_payload = {
-        "command": "spawn_on_surface",
-        "params": {
-            "object_type": "cereal",
-            "surface_name": surface_name,
-            "object_name": f"cereal_test_1",
-            "color": "red"
-        }
-    }
-    spawn_response = requests.post(url, json=spawn_payload)
-    spawn_result = spawn_response.json()
-    
-    if spawn_result["status"] == "success":
-        print(f"Created test object on {surface_name}")
-    else:
-        print(f"Note: Could not create test object: {spawn_result['message']}")
-        print("Continuing with test anyway...")
-    
-    # Now check what objects are on the surface
-    payload = {
-        "command": "get_objects_on_surface",
-        "params": {
-            "surface_name": surface_name
-        }
-    }
-    response = requests.post(url, json=payload)
-    result = response.json()
-    
-    if result["status"] == "success":
-        print(f"Found {result['count']} objects on {surface_name}:")
-        for obj in result['objects']:
-            print(f"- {obj['name']} at position {obj['position']}")
-    else:
-        print(f"Error: {result['message']}")
-    
-    return result
-# In main(), add:
 
 def test_spawn_in_area():
     """Test the spawn_in_area API endpoint."""
     print("\nTesting spawn_in_area...")
     
     # Choose a reliable surface to test with
-    surface_name = "oven_area_area"
+    surface_name = "kitchen_island_surface"
     # lets create a random number from 1 to 100
     import random
     random_number = random.randint(1, 100)
@@ -576,18 +325,10 @@ def test_spawn_in_area():
 def test_pick_and_place_on_surface():
     """Test the pick_and_place_on_surface API endpoint."""
     print("\nTesting pick_and_place_on_surface...")
-    
-    # # First, spawn an object to work with
-    # spawn_result = test_spawn_objects()
-    # if spawn_result["status"] != "success":
-    #     print("Failed to spawn test object, can't continue with pick and place test")
-    #     return {"status": "error", "message": "Failed to create test object"}
-    
-    # object_name = spawn_result["object"]["name"]
+   
     object_name = "cereal1"  # Use the name of the object we just spawned
     print(f"Created test object: {object_name}")
     
-    # Now pick up the object and place it on a surface
     surface_name = "kitchen_island_surface"
     payload = {
         "command": "pick_and_place_on_surface",
@@ -630,11 +371,8 @@ test_calculate_relative_distances_function = False
 
 # Test flags for kitchen surface functions
 test_get_placement_surfaces_function = False
-test_place_object_on_surface_function = False
-test_spawn_on_surface_function = False
-test_get_objects_on_surface_function = False
 test_kitchen_surfaces_function = False  # Enable the combined kitchen surfaces test
-test_spawn_in_area_function = False  # Enable the spawn_in_area test
+test_spawn_in_area_function = True  # Enable the spawn_in_area test
 test_pick_and_place_on_surface_function = True
 
 def main():
@@ -653,8 +391,7 @@ def main():
     if test_transport_object_function == True:
         test_transport_object()
     if test_calculate_object_distances_function == True:
-        test_calculate_object_distances()
-    
+        test_calculate_object_distances()    
     if test_detect_object_function == True:
         test_detect_object()
     if test_move_and_rotate_function == True:
@@ -668,17 +405,9 @@ def main():
     if test_robot_pose_function == True:
         test_robot_pose()
     if test_calculate_relative_distances_function == True:
-        test_calculate_relative_distances()
-    if test_kitchen_surfaces_function == True:
-        test_kitchen_surfaces()
+        test_calculate_relative_distances()    
     if test_get_placement_surfaces_function == True:
-        test_get_placement_surfaces()
-    if test_place_object_on_surface_function == True:
-        test_place_object_on_surface()
-    if test_spawn_on_surface_function == True:
-        test_spawn_on_surface()
-    if test_get_objects_on_surface_function == True:
-        test_get_objects_on_surface()
+        test_get_placement_surfaces()    
     if test_spawn_in_area_function == True:
         test_spawn_in_area()
     if test_pick_and_place_on_surface_function == True:

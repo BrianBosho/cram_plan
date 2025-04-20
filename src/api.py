@@ -84,9 +84,6 @@ from robot_actions_api import (
     calculate_relative_distances,
     # Add the new kitchen surface functions
     get_placement_surfaces,
-    place_object_on_surface,
-    spawn_on_surface,
-    get_objects_on_surface,
     spawn_in_area,
     pick_and_place_on_surface
 )
@@ -173,15 +170,6 @@ async def execute_command(data: dict = Body(...)):
         # Add new kitchen surface API endpoints
         elif command == "get_placement_surfaces":
             result = get_placement_surfaces()
-            return result
-        elif command == "place_object_on_surface":
-            result = place_object_on_surface(**params)
-            return result
-        elif command == "spawn_on_surface":
-            result = spawn_on_surface(**params)
-            return result
-        elif command == "get_objects_on_surface":
-            result = get_objects_on_surface(**params)
             return result
         elif command == "spawn_in_area":
             result = spawn_in_area(**params)
