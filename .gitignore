@@ -31,3 +31,5 @@ __pycache__/
 .Python
 env/
 venv/
+# add th folder pycram_clone_dev to fgit ignore
+pycram_clone_dev/

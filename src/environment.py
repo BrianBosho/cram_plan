@@ -119,3 +119,90 @@ def get_environment_name(env_obj):
     
     # Assuming the environment name is the first argument used in Object creation
     return env_obj.name if hasattr(env_obj, 'name') else None
+
+def reset_world():
+    """
+    Reset the world to its initial state.
+    
+    This function:
+    1. Clears all objects from the world
+    2. Resets the robot to its default position
+    3. Recreates the basic environment (kitchen, tables, etc.)
+    
+    Returns:
+        dict: Result of the reset operation
+    """
+    try:
+        from pycram.bullet_world import BulletWorld
+        from pycram.process_module import with_simulated_robot, simulated_robot
+        import time
+        
+        # Get the current world
+        world = get_world()
+        if not world:
+            return {"status": "error", "message": "No world to reset. You may need to initialize it first."}
+        
+        # Get the robot reference before clearing
+        robot = None
+        for obj in world.objects:
+            if hasattr(obj, 'name') and obj.name == "pr2":
+                robot = obj
+                break
+        
+        print("Clearing all objects from the world...")
+        
+        # Store kitchen for later (if present)
+        kitchen = None
+        for obj in world.objects:
+            if hasattr(obj, 'name') and obj.name == "kitchen":
+                kitchen = obj
+                break
+        
+        # Clear all objects except robot and room
+        objects_to_keep = ["pr2", "room_link"]
+        for obj in list(world.objects):  # Create a copy of the list to avoid modification during iteration
+            if not hasattr(obj, 'name') or obj.name not in objects_to_keep:
+                try:
+                    world.remove_object(obj)
+                except Exception as e:
+                    print(f"Could not remove object {obj}: {str(e)}")
+        
+        # Reset robot position and orientation
+        if robot:
+            with simulated_robot:
+                from pycram.designators.motion_designator import NavigateAction
+                from pycram.designators.motion_designator import ParkArmsAction, MoveTorsoAction
+                from pycram.designators.motion_designator_enums import Arms, TorsoState
+                from pycram.enums import GazeModes
+                from pycram.pose import Pose
+                
+                # Move to default position
+                print("Resetting robot position...")
+                # Default starting position
+                default_pose = Pose([0, 0, 0])
+                NavigateAction(target_locations=[default_pose]).resolve().perform()
+                
+                # Reset torso and arms
+                print("Resetting robot configuration...")
+                MoveTorsoAction([TorsoState.LOW]).resolve().perform()
+                ParkArmsAction([Arms.BOTH]).resolve().perform()
+                
+                # Reset gaze
+                robot.gaze_mode = GazeModes.HEAD_LOOKING_AT
+        
+        # Recreate kitchen environment
+        print("Recreating kitchen environment...")
+        initialize_kitchen(world)
+        
+        # A short pause to allow physics to stabilize
+        time.sleep(1.0)
+        
+        return {
+            "status": "success",
+            "message": "World reset successfully to initial state"
+        }
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": f"Error resetting world: {str(e)}"}

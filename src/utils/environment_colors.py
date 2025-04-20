@@ -24,7 +24,7 @@ PALETTE = {
 # Pattern-based rules for coloring kitchen components (order matters for precedence)
 KITCHEN_COLOR_RULES = [
     # Walls and floor
-    (r".*wall.*",         "wall2"),
+    (r".*wall.*",         "ocean_blue"),
     (r".*footprint",      "floor"),
     (r"room_link",        "floor"),
     (r"world",            "floor"),

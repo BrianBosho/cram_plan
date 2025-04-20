@@ -938,6 +938,70 @@ def spawn_objects(object_choice=None, coordinates=None, color=None, name=None):
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
+def spawn_in_area(object_choice=None, surface_name=None, color=None, name=None, offset_x=0, offset_y=0):
+    """
+    Spawn an object in a specific kitchen area or surface.
+    
+    This function extends spawn_objects by allowing specification of a named surface
+    rather than explicit coordinates.
+    
+    Args:
+        object_choice (str): "cereal", "milk", "spoon", "bowl", or a custom name
+        surface_name (str): Name of the surface to place on (e.g., "kitchen_island_surface")
+        color (str): Color name (e.g., "red", "blue") or None for default
+        name (str): Custom name for the object or None for default
+        offset_x (float): X offset from center of surface (default: 0)
+        offset_y (float): Y offset from center of surface (default: 0)
+        
+    Returns:
+        dict: Information about the created object
+    """
+    try:
+        from utils.kitchen_surfaces import get_surface_position
+        from environment import get_world
+        
+        # Default values
+        if surface_name is None:
+            surface_name = "kitchen_island_surface"  # Default surface
+            
+        # Get the world
+        world = get_world()
+        if not world:
+            return {"status": "error", "message": "World not initialized"}
+            
+        # Get surface position
+        surface_pos = get_surface_position(world, surface_name)
+        if not surface_pos:
+            return {"status": "error", "message": f"Surface '{surface_name}' position not found"}
+        
+        # Add offsets to position and height adjustment for object placement
+        coordinates = [
+            surface_pos[0] + offset_x,  # X with offset
+            surface_pos[1] + offset_y,  # Y with offset
+            surface_pos[2] + 0.1        # Z with height adjustment to place on top
+        ]
+        
+        print(f"API: Spawning {object_choice} on surface {surface_name} at position {coordinates}")
+        
+        # Call the existing spawn_objects function with the calculated coordinates
+        result = spawn_objects(
+            object_choice=object_choice,
+            coordinates=coordinates,
+            color=color,
+            name=name
+        )
+        
+        # Add surface info to the result if successful
+        if result["status"] == "success":
+            result["surface"] = surface_name
+            result["message"] = f"Object '{result['object']['name']}' created on {surface_name}"
+            
+        return result
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": f"Error spawning object in area: {str(e)}"}
 
 def capture_camera_image(world, display=False, save_path=None, target_distance=2.0):
     """
@@ -1413,3 +1477,235 @@ def calculate_relative_distances(object_name_1, object_name_2, world=None):
         "dz": dz,
         "euclidean": euclidean
     }
+
+
+def get_placement_surfaces():
+    """Get all available placement surfaces in the kitchen."""
+    try:
+        from utils.kitchen_surfaces import get_available_surfaces, get_surface_info, get_surface_dimensions, get_surface_position
+        from environment import get_world
+        
+        world = get_world()
+        if not world:
+            return {"status": "error", "message": "World not initialized"}
+            
+        surfaces = get_available_surfaces()
+        result = {}
+        
+        for surface_name in surfaces:
+            info = get_surface_info(surface_name)
+            dims, _ = get_surface_dimensions(world, surface_name)
+            pos = get_surface_position(world, surface_name)
+            
+            result[surface_name] = {
+                "description": info["description"],
+                "recommended_for": info["recommended_for"],
+                "dimensions": dims,
+                "position": pos
+            }
+            
+        return {
+            "status": "success",
+            "surfaces": result
+        }
+            
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": f"Error getting placement surfaces: {str(e)}"}
+
+def place_object_on_surface(object_name, surface_name, offset_x=0, offset_y=0):
+    """
+    Place an existing object on a specific surface.
+    
+    Args:
+        object_name (str): Name of the object to place
+        surface_name (str): Name of the surface to place on
+        offset_x (float): X offset from center of surface (default: 0)
+        offset_y (float): Y offset from center of surface (default: 0)
+        
+    Returns:
+        dict: Result of the placement operation
+    """
+    try:
+        from utils.kitchen_surfaces import place_on_surface
+        from environment import get_world
+        
+        world = get_world()
+        if not world:
+            return {"status": "error", "message": "World not initialized"}
+            
+        success = place_on_surface(world, object_name, surface_name, offset_x, offset_y)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": f"Object '{object_name}' placed on {surface_name}",
+                "surface": surface_name,
+                "offsets": [offset_x, offset_y]
+            }
+        else:
+            return {"status": "error", "message": f"Failed to place object '{object_name}' on {surface_name}"}
+            
+    except Exception as e:
+        return {"status": "error", "message": f"Error placing object on surface: {str(e)}"}
+
+def spawn_on_surface(object_type, surface_name, object_name=None, color="red", offset_x=0, offset_y=0):
+    """
+    Spawn a new object directly on a specific surface.
+    
+    Args:
+        object_type (str): Type of object to spawn
+        surface_name (str): Name of the surface to place on
+        object_name (str): Custom name for the object (optional)
+        color (str): Color for the object (default: "red")
+        offset_x (float): X offset from center of surface (default: 0)
+        offset_y (float): Y offset from center of surface (default: 0)
+        
+    Returns:
+        dict: Result of the spawn operation
+    """
+    try:
+        from utils.kitchen_surfaces import spawn_object_on_surface
+        from environment import get_world
+        from pycram.datastructures.enums import ObjectType
+        import random
+        
+        world = get_world()
+        if not world:
+            return {"status": "error", "message": "World not initialized"}
+            
+        # Determine object type
+        if isinstance(object_type, str):
+            object_type = object_type.lower()
+            if object_type == "cereal":
+                ont_type = ObjectType.CEREAL
+                file_name = "breakfast_cereal.stl"
+            elif object_type == "milk":
+                ont_type = ObjectType.MILK
+                file_name = "milk.stl"
+            elif object_type == "spoon":
+                ont_type = ObjectType.SPOON
+                file_name = "spoon.stl"
+            elif object_type == "bowl":
+                ont_type = ObjectType.BOWL
+                file_name = "bowl.stl"
+            else:
+                ont_type = ObjectType.GENERIC
+                file_name = f"{object_type}.stl"
+        else:
+            ont_type = object_type
+            file_name = f"{ont_type.__name__.lower()}.stl"
+            
+        # Generate a random name if none provided
+        if not object_name:
+            object_name = f"{object_type}{random.randint(1, 100)}"
+            
+        # Spawn the object
+        result = spawn_object_on_surface(world, ont_type, object_name, surface_name, color, offset_x, offset_y)
+        
+        return result
+            
+    except Exception as e:
+        return {"status": "error", "message": f"Error spawning object on surface: {str(e)}"}
+
+def get_objects_on_surface(surface_name):
+    """
+    Get all objects currently on a specific surface.
+    
+    Args:
+        surface_name (str): Name of the surface to check
+        
+    Returns:
+        dict: Objects detected on the surface
+    """
+    try:
+        from utils.kitchen_surfaces import detect_objects_on_surface
+        from environment import get_world
+        
+        world = get_world()
+        if not world:
+            return {"status": "error", "message": "World not initialized"}
+            
+        objects = detect_objects_on_surface(world, surface_name)
+        
+        return {
+            "status": "success",
+            "surface": surface_name,
+            "objects": objects,
+            "count": len(objects)
+        }
+            
+    except Exception as e:
+        return {"status": "error", "message": f"Error getting objects on surface: {str(e)}"}
+
+
+def pick_and_place_on_surface(object_name=None, surface_name=None, offset_x=0, offset_y=0, arm=None):
+    """
+    Pick up an object and place it on a specified kitchen surface.
+    
+    This function extends pickup_and_place by allowing specification of a named surface
+    rather than explicit coordinates for placement.
+    
+    Args:
+        object_name (str): Name of the object to pick up
+        surface_name (str): Name of the surface to place on (e.g., "kitchen_island_surface")
+        offset_x (float): X offset from center of surface (default: 0)
+        offset_y (float): Y offset from center of surface (default: 0)
+        arm (str): Which arm to use ('left', 'right', or None for automatic)
+        
+    Returns:
+        dict: Result of the operation
+    """
+    try:
+        from utils.kitchen_surfaces import get_surface_position
+        from environment import get_world
+        
+        # Default values
+        if object_name is None:
+            object_name = "cereal"  # Default object to pick up
+            
+        if surface_name is None:
+            surface_name = "kitchen_island_surface"  # Default placement surface
+            
+        # Get the world
+        world = get_world()
+        if not world:
+            return {"status": "error", "message": "World not initialized"}
+            
+        # Get surface position
+        surface_pos = get_surface_position(world, surface_name)
+        if not surface_pos:
+            return {"status": "error", "message": f"Surface '{surface_name}' position not found"}
+        
+        # Add offsets to position and height adjustment for object placement
+        target_location = [
+            surface_pos[0] + offset_x,  # X with offset
+            surface_pos[1] + offset_y,  # Y with offset
+            surface_pos[2] + 0.1        # Z with height adjustment to place on top
+        ]
+        
+        # round off each value in target_location to 2 decimal places
+        target_location = [round(val, 2) for val in target_location]
+        
+        print(f"API: Picking up {object_name} and placing on surface {surface_name} at position {target_location}")
+        
+        # Call the existing pickup_and_place function with the calculated coordinates
+        result = pickup_and_place(
+            object_name=object_name,
+            target_location=target_location,
+            arm=arm
+        )
+        
+        # Add surface info to the result if successful
+        if result["status"] == "success":
+            result["surface"] = surface_name
+            result["offsets"] = [offset_x, offset_y]
+            result["message"] = f"Successfully picked up {object_name} and placed on {surface_name}"
+            
+        return result
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": f"Error during pick and place on surface: {str(e)}"}

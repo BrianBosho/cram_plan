@@ -81,7 +81,14 @@ from robot_actions_api import (
     park_arms,
     get_enhanced_camera_images,
     get_robot_pose,
-    calculate_relative_distances
+    calculate_relative_distances,
+    # Add the new kitchen surface functions
+    get_placement_surfaces,
+    place_object_on_surface,
+    spawn_on_surface,
+    get_objects_on_surface,
+    spawn_in_area,
+    pick_and_place_on_surface
 )
 
 # from camera import get_camera_images    
@@ -163,6 +170,26 @@ async def execute_command(data: dict = Body(...)):
         elif command == "calculate_relative_distances":
             result = calculate_relative_distances(**params, world=world)
             return result
+        # Add new kitchen surface API endpoints
+        elif command == "get_placement_surfaces":
+            result = get_placement_surfaces()
+            return result
+        elif command == "place_object_on_surface":
+            result = place_object_on_surface(**params)
+            return result
+        elif command == "spawn_on_surface":
+            result = spawn_on_surface(**params)
+            return result
+        elif command == "get_objects_on_surface":
+            result = get_objects_on_surface(**params)
+            return result
+        elif command == "spawn_in_area":
+            result = spawn_in_area(**params)
+            return result
+        elif command == "pick_and_place_on_surface":
+            result = pick_and_place_on_surface(**params)
+            return result
+
         else:
             return {"status": "error", "message": f"Unknown command: {command}"}
     except Exception as e:
@@ -176,6 +203,7 @@ async def list_commands():
     return {
         "available_commands": [
             "spawn_objects",
+            "spawn_in_area",
             "move_robot",
             "pickup_and_place",
             "robot_perceive",
@@ -187,7 +215,15 @@ async def list_commands():
             "look_at_object",
             "detect_object",
             "park_arms",
-            "get_enhanced_camera_images"
+            "get_enhanced_camera_images",
+            "get_robot_pose",
+            "calculate_relative_distances",
+            "get_placement_surfaces",
+            "place_object_on_surface",
+            "spawn_on_surface",
+            "get_objects_on_surface"
+            "pick_and_place_on_surface",
+            
         ]
     }
 
@@ -209,4 +245,4 @@ if __name__ == "__main__":
         threading.Thread(target=open_browser, daemon=True).start()
         
         # Start the server
-        uvicorn.run(app, host="0.0.0.0", port=8001) 
+        uvicorn.run(app, host="0.0.0.0", port=8001)
