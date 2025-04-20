@@ -7,6 +7,13 @@ from pycram.datastructures.pose import Pose
 from pycram.datastructures.enums import ObjectType
 from utils.color_wrapper import ColorWrapper
 
+# Try to import environment color utilities, but don't fail if not available
+try:
+    from utils.environment_colors import apply_kitchen_colors, apply_robot_colors
+    HAS_COLOR_UTILS = True
+except ImportError:
+    HAS_COLOR_UTILS = False
+
 # Global reference to the world - accessible by importing this module
 world = None
 
@@ -50,7 +57,19 @@ def create_environment(spawn_default_objects=True):
         # Spawn the robot
         robot_obj = Object("pr2", Robot, "pr2.urdf")
         print("Robot spawned as 'pr2'.")
-        
+
+        # Try to apply colors, but continue even if it fails
+        if HAS_COLOR_UTILS and env_name == 'kitchen':
+            try:
+                print("Applying colors to kitchen environment...")
+                # Enable debug mode to see what's happening with kitchen coloring
+                apply_kitchen_colors(env_obj, debug=True)
+                print("Applying colors to robot...")
+                apply_robot_colors(robot_obj)
+            except Exception as color_error:
+                print(f"Warning: Could not apply colors: {str(color_error)}")
+                print("Continuing without custom colors...")
+
         # Optional: Spawn default objects in the kitchen
         if spawn_default_objects and env_name == 'kitchen':
             default_objects = [

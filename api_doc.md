@@ -677,6 +677,43 @@ Calculates the relative distances between two objects in the world, returning th
 - Returns the difference in x, y, z coordinates (dx, dy, dz) and the Euclidean distance between the two objects.
 - All values are rounded to three decimal places.
 
+### 15. get_robot_pose
+
+Gets the current pose (position and orientation) of the PR2 robot in the simulation.
+
+**Source**: `robot_actions_api.py`
+
+#### Parameters
+
+None
+
+#### Return Value
+
+**Success Response**:
+```json
+{
+  "status": "success",
+  "position": [x, y, z],
+  "orientation": [qx, qy, qz, qw]
+}
+```
+
+**Error Response**:
+```json
+{
+  "status": "error",
+  "message": "Error message"
+}
+```
+
+#### Error Conditions
+- If the PR2 robot cannot be resolved in the simulation
+- Any exception during pose retrieval
+
+#### Implementation Notes
+- Uses the `simulated_robot` context manager for safe access
+- Returns position as a 3-element list and orientation as a 4-element quaternion list
+
 ## API Server Implementation
 
 The API server (`api.py`) uses FastAPI to expose the `/execute` endpoint that routes requests to the appropriate function in `robot_actions_api.py`. It also initializes the environment at startup.
