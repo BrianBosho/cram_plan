@@ -349,6 +349,111 @@ Moves the robot's arm(s) to the pre-defined parking position.
 }
 ```
 
+#### 14. calculate_relative_distances
+
+Calculates the difference in x, y, z coordinates and the Euclidean distance between two objects.
+
+**Parameters:**
+- `object_name_1` (string): Name of the first object
+- `object_name_2` (string): Name of the second object
+
+**Response:**
+```json
+{
+  "status": "success",
+  "object_1": "object_name_1",
+  "object_2": "object_name_2",
+  "dx": number,
+  "dy": number,
+  "dz": number,
+  "euclidean": number
+}
+```
+
+#### 15. get_robot_pose
+
+Returns the current position and orientation of the robot in the simulation.
+
+**Parameters:** None
+
+**Response:**
+```json
+{
+  "status": "success",
+  "position": [x, y, z],
+  "orientation": [qx, qy, qz, qw]
+}
+```
+
+#### 16. get_placement_surfaces
+
+Returns information about available surfaces in the environment where objects can be placed.
+
+**Parameters:** None
+
+**Response:**
+```json
+{
+  "status": "success",
+  "surfaces": {
+    "surface_name": {
+      "description": "string",
+      "position": [x, y, z],
+      "dimensions": [width, depth, height],
+      "recommended_for": ["object_type1", ...]
+    }
+  }
+}
+```
+
+#### 17. spawn_in_area
+
+Spawns an object on a specific named surface with optional color, name, and offsets.
+
+**Parameters:**
+- `object_choice` (string): Type of object to spawn
+- `surface_name` (string): Name of the surface
+- `color` (string): Color for the object (optional)
+- `name` (string): Custom name (optional)
+- `offset_x` (number): X offset from surface center (optional)
+- `offset_y` (number): Y offset from surface center (optional)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "object": {
+    "name": "string",
+    "type": "string",
+    "pose": [x, y, z],
+    "color": "string"
+  }
+}
+```
+
+#### 18. pick_and_place_on_surface
+
+Picks up an object and places it on a specific named surface.
+
+**Parameters:**
+- `object_name` (string): Name of the object to pick up
+- `surface_name` (string): Name of the surface
+- `offset_x` (number): X offset from surface center (optional)
+- `offset_y` (number): Y offset from surface center (optional)
+- `arm` (string): Which arm to use (optional)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Successfully picked up {object_name} and placed on {surface_name}",
+  "object": "string",
+  "surface": "string",
+  "position": [x, y, z],
+  "arm_used": "string"
+}
+```
+
 ## Usage Examples
 
 ### Command-line (using curl)
@@ -389,4 +494,4 @@ cd src
 python api.py
 ```
 
-The server will start at `http://localhost:8001` and automatically open a browser window with the control panel. 
+The server will start at `http://localhost:8001` and automatically open a browser window with the control panel.
