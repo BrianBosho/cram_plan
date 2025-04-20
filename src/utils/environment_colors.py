@@ -5,59 +5,86 @@ from utils.color_wrapper import ColorWrapper
 import traceback
 import re
 
-# Color constants as strings for ColorWrapper
-SILVER_COLOUR = "silver"
-WOOD_COLOUR = "wood"
-GREEN_COLOUR = "green"
-BLUE_COLOUR = "blue"
-YELLOW_COLOUR = "yellow"
-BLACK_COLOUR = "black"
-RED_COLOUR = "red"
-GRAY_COLOUR = "silver"  # Using silver as gray
+# Refined color palette as RGB tuples - for direct ColorWrapper use
+PALETTE = {
+    "wall":   (0.90, 0.90, 0.90, 1.0),   # light grey
+    "floor":  (0.95, 0.95, 0.95, 1.0),   # very light grey
+    "wood":   (0.82, 0.70, 0.55, 1.0),   # warm oak
+    "stone":  (0.35, 0.35, 0.40, 1.0),   # dark countertop
+    "metal":  (0.85, 0.85, 0.85, 1.0),   # stainless steel
+    "black":  (0.10, 0.10, 0.10, 1.0),   # matte black handles
+    "accent": (0.50, 0.60, 0.50, 1.0),   # sage green for island panels
+    "accent2": (0.60, 0.50, 0.30, 1.0),  # warm amber for oven area drawers
+    "white":  (1.00, 1.00, 1.00, 1.0),   # pure white for some appliances
+    "gray":   (0.70, 0.70, 0.70, 1.0),   # medium gray for sink area drawers
+    "wall2":   (0.60, 0.60, 0.60, 1.0), 
+    "ocean_blue": (0.00, 0.50, 0.70, 1.0) 
+}
 
-# Pattern-based rules for coloring kitchen components
+# Pattern-based rules for coloring kitchen components (order matters for precedence)
 KITCHEN_COLOR_RULES = [
-    # Kitchen island and wooden furniture
-    (r"kitchen_island(?!.*handle)", WOOD_COLOUR),  # Kitchen island itself
-    (r"kitchen_island.*handle", SILVER_COLOUR),    # Handles are silver
-    (r".*drawer.*handle", SILVER_COLOUR),          # All drawer handles are silver
-    (r".*drawer.*main", WOOD_COLOUR),              # Most drawer main bodies are wood
+    # Walls and floor
+    (r".*wall.*",         "wall2"),
+    (r".*footprint",      "floor"),
+    (r"room_link",        "floor"),
+    (r"world",            "floor"),
     
-    # Sink area
-    (r"sink_area$", WOOD_COLOUR),                  # Sink area base
-    (r"sink_area_surface", SILVER_COLOUR),         # Sink countertop
-    (r"sink_area_sink", SILVER_COLOUR),            # Sink itself
-    (r"sink_area.*dish_washer.*door", YELLOW_COLOUR),  # Dishwasher door
-    (r"sink_area.*dish_washer.*handle", SILVER_COLOUR),  # Dishwasher handle
-    (r"sink_area.*drawer.*main", YELLOW_COLOUR),   # Sink drawers are yellow
-    (r"sink_area.*panel", SILVER_COLOUR),          # Panels in sink area are silver
-
-    # Oven area
-    (r"oven_area_area$", SILVER_COLOUR),           # Oven area base
-    (r"oven_area.*oven_door", GREEN_COLOUR),       # Oven door
-    (r"oven_area.*oven_panel", BLUE_COLOUR),       # Oven panel
-    (r"oven_area.*oven_knob", SILVER_COLOUR),      # Oven knobs
-    (r"oven_area.*oven.*handle", SILVER_COLOUR),   # Oven handle
-    (r"oven_area.*middle.*drawer.*main", GREEN_COLOUR),  # Middle drawers in oven area are green
+    # Countertops & surfaces
+    (r".*_surface$",      "stone"),
+    (r"sink_area_sink",   "metal"),
+    (r"kitchen_island_surface", "stone"),
     
-    # Fridge area
-    (r"fridge_area$", SILVER_COLOUR),              # Fridge area base
-    (r".*fridge_door$", GREEN_COLOUR),             # Fridge door
-    (r".*fridge_door_handle", SILVER_COLOUR),      # Fridge handle
+    # Cabinetry base
+    (r"sink_area$",       "wood"),
+    (r"fridge_area$",     "wood"),
+    (r"oven_area_area$",  "wood"),
     
-    # Table
-    (r"table_area_main", WOOD_COLOUR),             # Table
+    # Kitchen island with accent color
+    (r"kitchen_island$",  "accent"),
     
-    # Walls
-    (r".*wall.*", GRAY_COLOUR),                    # Walls are gray
+    # Appliances & doors
+    (r".*dish_washer.*door", "metal"),
+    (r".*oven_door",      "metal"),
+    (r".*fridge_door$",   "metal"),
+    (r".*oven_panel",     "black"),
     
-    # Generic rules (apply last)
-    (r".*handle", SILVER_COLOUR),                  # All other handles are silver 
-    (r".*footprint", GRAY_COLOUR),                 # Footprints are light gray
-    (r".*panel", SILVER_COLOUR),                   # Panels are silver
-    (r"room_link", GRAY_COLOUR),                   # Room link is gray
-    (r"world", GRAY_COLOUR),                       # World is gray
+    # Different drawer colors by area
+    (r"sink_area.*drawer.*main", "gray"),
+    (r"oven_area.*drawer.*main", "accent2"),
+    (r"kitchen_island.*drawer.*main", "wood"),
+    
+    # Default for remaining drawers
+    (r".*drawer.*main",   "wood"),
+    
+    # Handles & knobs (all black for consistency)
+    (r".*handle",         "black"),
+    (r".*knob",           "black"),
+    
+    # Other elements
+    (r"table_area_main",  "wood"),
+    (r".*panel",          "metal"),
 ]
+
+class PaletteColorWrapper:
+    """Wrapper that can handle both palette names and direct RGB tuples."""
+    
+    def __init__(self, color_key):
+        """
+        Initialize with a color key which can be a palette name or RGB tuple.
+        
+        Args:
+            color_key: Either a string key to look up in PALETTE or an RGB tuple
+        """
+        if isinstance(color_key, str) and color_key in PALETTE:
+            self.rgba = PALETTE[color_key]
+        else:
+            # If not in palette, pass to the standard ColorWrapper
+            wrapper = ColorWrapper(color_key)
+            self.rgba = wrapper.get_rgba()
+    
+    def get_rgba(self):
+        """Return the RGBA tuple."""
+        return self.rgba
 
 class RobotColorHandler:
     """Handler for coloring robot parts."""
@@ -66,13 +93,13 @@ class RobotColorHandler:
     def get_robot_colors():
         """Get color mapping for robot parts."""
         return {
-            "base_link": BLACK_COLOUR,
-            "head_tilt_link": BLACK_COLOUR,
-            "r_forearm_link": BLACK_COLOUR,
-            "l_forearm_link": BLACK_COLOUR,
-            "torso_lift_link": GREEN_COLOUR,
-            "r_gripper_palm_link": GREEN_COLOUR,
-            "l_gripper_palm_link": GREEN_COLOUR,
+            "base_link": "black",
+            "head_tilt_link": "black",
+            "r_forearm_link": "black",
+            "l_forearm_link": "black",
+            "torso_lift_link": "accent",
+            "r_gripper_palm_link": "accent",
+            "l_gripper_palm_link": "accent",
         }
 
 def get_kitchen_colors_from_links(link_names):
@@ -144,10 +171,10 @@ def apply_colors(obj, colors_dict, debug=False):
         print(f"Applying {len(colors_dict)} colors to {obj.name if hasattr(obj, 'name') else 'object'}")
         
     try:
-        # Convert all color strings to ColorWrapper objects
+        # Convert all color strings to PaletteColorWrapper objects
         wrapped_colors = {}
         for part, color in colors_dict.items():
-            wrapped_colors[part] = ColorWrapper(color)
+            wrapped_colors[part] = PaletteColorWrapper(color)
         
         # Apply colors
         obj.set_color(wrapped_colors)
