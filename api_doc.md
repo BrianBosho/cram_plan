@@ -631,6 +631,52 @@ Moves the robot's arm(s) to the pre-defined parking position.
 - Uses `ParkArmsAction` to move the robot's arms to parking position
 - Logs arm movement to console
 
+### 14. calculate_relative_distances
+
+Calculates the relative distances between two objects in the world, returning the difference in x, y, z coordinates and the Euclidean distance.
+
+**Source**: `robot_actions_api.py`
+
+#### Parameters
+
+| Parameter        | Type   | Required | Description                                      |
+|------------------|--------|----------|--------------------------------------------------|
+| object_name_1    | string | Yes      | Name of the first object                         |
+| object_name_2    | string | Yes      | Name of the second object                        |
+
+#### Return Value
+
+**Success Response**:
+```json
+{
+  "status": "success",
+  "object_1": "object_name_1",
+  "object_2": "object_name_2",
+  "dx": number,
+  "dy": number,
+  "dz": number,
+  "euclidean": number
+}
+```
+
+**Error Response**:
+```json
+{
+  "status": "error",
+  "message": "Error message"
+}
+```
+
+#### Error Conditions
+
+- If the world is not initialized
+- If either object is not found
+
+#### Implementation Notes
+
+- Returns the difference in x, y, z coordinates (dx, dy, dz) and the Euclidean distance between the two objects.
+- All values are rounded to three decimal places.
+
 ## API Server Implementation
 
 The API server (`api.py`) uses FastAPI to expose the `/execute` endpoint that routes requests to the appropriate function in `robot_actions_api.py`. It also initializes the environment at startup.
@@ -736,4 +782,4 @@ All API responses include the following common fields:
 
 - `status`: String value "success" or "error" indicating the result of the operation
 - `message`: Human-readable message explaining the result
-- Additional fields specific to each endpoint 
+- Additional fields specific to each endpoint
