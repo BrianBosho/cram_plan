@@ -130,7 +130,7 @@ def detect_object(object_name=None, location=None):
                         central_pose = obj.pose
                         break
                 
-                if central_pose:
+                if (central_pose):
                     # Look at the object to orient the robot's camera
                     LookAtAction(targets=[central_pose]).resolve().perform()
             except Exception as e:
@@ -489,6 +489,9 @@ def pickup_and_place(object_name=None, target_location=None, arm=None):
             
         if target_location is None:
             target_location = [1.4, 1.0, 0.95]  # Default placement location
+        
+        # Round the target location to 3 decimal places to avoid precision issues
+        target_location = [round(float(val), 3) for val in target_location]
             
         # Convert arm string to enum
         arm_enum = None
@@ -513,6 +516,9 @@ def pickup_and_place(object_name=None, target_location=None, arm=None):
             # print the target location
             print(f"API: Target location: {target_location}")
             
+            # Store the original position for fallback
+            original_position = None
+            object_resolved = None
             
             # Park arms and adjust torso for pickup
             ParkArmsAction([Arms.BOTH]).resolve().perform()
@@ -554,6 +560,22 @@ def pickup_and_place(object_name=None, target_location=None, arm=None):
                 if not object_resolved:
                     return {"status": "error", "message": f"Object '{object_name}' not found in the world. You may need to spawn it first."}
                 
+                # Store the original position of the object
+                if hasattr(object_resolved, 'get_position'):
+                    pos = object_resolved.get_position()
+                    if hasattr(pos, 'x'):
+                        original_position = [round(pos.x, 3), round(pos.y, 3), round(pos.z, 3)]
+                    else:
+                        original_position = [round(float(val), 3) for val in list(pos)]
+                elif hasattr(object_resolved, 'pose') and hasattr(object_resolved.pose, 'position'):
+                    pos = object_resolved.pose.position
+                    if hasattr(pos, 'x'):
+                        original_position = [round(pos.x, 3), round(pos.y, 3), round(pos.z, 3)]
+                    else:
+                        original_position = [round(float(val), 3) for val in list(pos)]
+                
+                print(f"API: Original object position: {original_position}")
+                
                 pickup_pose = CostmapLocation(
                     target=object_resolved,
                     reachable_for=robot_desig
@@ -587,18 +609,17 @@ def pickup_and_place(object_name=None, target_location=None, arm=None):
             # Allow simulation state to update
             time.sleep(0.5)
             
-            # Prepare for placement
-            destination_pose = Pose(target_location)
+            # Prepare for placement - ensure orientation is set properly
+            destination_pose = Pose(target_location, [0, 0, 0, 1]) # Explicitly set orientation
             print(f"API: Destination pose for placement: {destination_pose}")
+            print(f"API: Position: {destination_pose.position_as_list()}, Orientation: {destination_pose.orientation_as_list()}")
             
             # Resolve placement location
             print("API: Resolving placement location...")
             
             # Simple timeout implementation for placement resolution
-           
-            
             place_stand = None
-            resolution_timeout = 5  # seconds
+            resolution_timeout = 15  # seconds - increased timeout
             resolution_complete = False
             resolution_error = None
             
@@ -635,12 +656,24 @@ def pickup_and_place(object_name=None, target_location=None, arm=None):
                 print(f"API: Error in placement resolution: {resolution_error}")
                 place_stand = None
                 
-            # If resolution failed, use a direct approach
+            # If resolution failed, try direct approach at the robot's current position
             if place_stand is None or not hasattr(place_stand, 'pose'):
                 print("API: Using fallback placement approach")
-                # Try a direct placement without costmap resolution
-                print("API: Executing place action with direct pose...")
+                
+                # First, try moving closer to the target
                 try:
+                    # Move closer to the target position if possible
+                    approach_pos = [
+                        target_location[0] - 0.5,  # Stand 0.5 meters back from target X
+                        target_location[1],        # Same Y coordinate
+                        0.0                        # Ground level for robot
+                    ]
+                    
+                    print(f"API: Moving closer to target location: {approach_pos}")
+                    NavigateAction(target_locations=[Pose(approach_pos)]).resolve().perform()
+                    
+                    # Try direct placement at the specified location
+                    print("API: Executing place action with direct pose...")
                     PlaceAction(
                         object_designator_description=object_desig,
                         target_locations=[destination_pose],
@@ -658,7 +691,47 @@ def pickup_and_place(object_name=None, target_location=None, arm=None):
                         "arm_used": str(pickup_arm)
                     }
                 except Exception as place_error:
-                    return {"status": "error", "message": f"Failed to place object using fallback method: {str(place_error)}"}
+                    print(f"API: Fallback placement failed: {str(place_error)}")
+                    
+                    # Try to return the object to its original position
+                    if original_position:
+                        # First move closer to the original position
+                        try:
+                            approach_original = [
+                                original_position[0] - 0.5,  # Stand 0.5 meters back from original X
+                                original_position[1],        # Same Y coordinate
+                                0.0                         # Ground level for robot
+                            ]
+                            
+                            print(f"API: Moving back to original location: {approach_original}")
+                            NavigateAction(target_locations=[Pose(approach_original)]).resolve().perform()
+                        except Exception as nav_error:
+                            print(f"API: Navigation to original position area failed: {str(nav_error)}")
+                            # Continue anyway, might still be able to place
+                        
+                        return_success = return_object_to_origin(object_desig, original_position, pickup_arm)
+                        if return_success:
+                            return {
+                                "status": "error", 
+                                "message": f"Failed to place object but returned it to original position. Error: {str(place_error)}"
+                            }
+                    
+                    # If returning to origin failed, try to at least release the object safely
+                    try:
+                        # Try a simpler release (just drop it)
+                        print("API: Attempting emergency object release")
+                        drop_pose = Pose([0, 0, -0.3], [0, 0, 0, 1], frame='gripper')
+                        PlaceAction(
+                            object_designator_description=object_desig,
+                            target_locations=[drop_pose],
+                            arms=[pickup_arm]
+                        ).resolve().perform()
+                        
+                        ParkArmsAction([Arms.BOTH]).resolve().perform()
+                        return {"status": "error", "message": f"Failed to place object at target or original position, performed emergency release"}
+                    except Exception as e:
+                        print(f"API: Even emergency release failed: {str(e)}")
+                        return {"status": "error", "message": f"Failed to place object: {str(place_error)}. Robot is still holding the object."}
             
             # Regular placement execution if resolution succeeded
             # Navigate to placement location
@@ -667,22 +740,63 @@ def pickup_and_place(object_name=None, target_location=None, arm=None):
             
             # Execute place action
             print("API: Executing place action...")
-            PlaceAction(
-                object_designator_description=object_desig,
-                target_locations=[destination_pose],
-                arms=[pickup_arm]
-            ).resolve().perform()
-            
-            ParkArmsAction([Arms.BOTH]).resolve().perform()
-            print("API: Place action completed successfully.")
-            
-            return {
-                "status": "success",
-                "message": f"Successfully picked up {object_name} and placed at {target_location}",
-                "object": object_name,
-                "target_location": target_location,
-                "arm_used": str(pickup_arm)
-            }
+            try:
+                PlaceAction(
+                    object_designator_description=object_desig,
+                    target_locations=[destination_pose],
+                    arms=[pickup_arm]
+                ).resolve().perform()
+                
+                ParkArmsAction([Arms.BOTH]).resolve().perform()
+                print("API: Place action completed successfully.")
+                
+                return {
+                    "status": "success",
+                    "message": f"Successfully picked up {object_name} and placed at {target_location}",
+                    "object": object_name,
+                    "target_location": target_location,
+                    "arm_used": str(pickup_arm)
+                }
+            except Exception as place_error:
+                print(f"API: Place action failed: {str(place_error)}")
+                
+                # Try to return the object to its original position
+                if original_position:
+                    # First move closer to the original position
+                    try:
+                        approach_original = [
+                            original_position[0] - 0.5,  # Stand 0.5 meters back from original X
+                            original_position[1],        # Same Y coordinate
+                            0.0                         # Ground level for robot
+                        ]
+                        
+                        print(f"API: Moving back to original location: {approach_original}")
+                        NavigateAction(target_locations=[Pose(approach_original)]).resolve().perform()
+                    except Exception as nav_error:
+                        print(f"API: Navigation to original position area failed: {str(nav_error)}")
+                    
+                    return_success = return_object_to_origin(object_desig, original_position, pickup_arm)
+                    if return_success:
+                        return {
+                            "status": "error", 
+                            "message": f"Failed to place object but returned it to original position. Error: {str(place_error)}"
+                        }
+                
+                # If returning to origin failed, try to release the object anyway
+                try:
+                    print("API: Attempting emergency object release")
+                    drop_pose = Pose([0, 0, -0.3], [0, 0, 0, 1], frame='gripper')
+                    PlaceAction(
+                        object_designator_description=object_desig,
+                        target_locations=[drop_pose],
+                        arms=[pickup_arm]
+                    ).resolve().perform()
+                    
+                    ParkArmsAction([Arms.BOTH]).resolve().perform()
+                    return {"status": "error", "message": f"Failed to place object at target or original position, performed emergency release"}
+                except Exception as e:
+                    print(f"API: Even emergency release failed: {str(e)}")
+                    return {"status": "error", "message": f"Failed to place object: {str(place_error)}. Robot is still holding the object."}
             
     except Exception as e:
         import traceback
@@ -1422,6 +1536,146 @@ def park_arms(arm=None):
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
+
+def force_release_object(arm=None):
+    """
+    Force the robot to release any object it's currently holding.
+    
+    This function performs several emergency release actions to ensure
+    the robot lets go of anything it might be gripping.
+    
+    Args:
+        arm (str): Which arm to release. Options: "left", "right", or None for both.
+                  Default is None (both arms).
+        
+    Returns:
+        dict: Result of the operation
+    """
+    try:
+        # Map string arm to Arms enum
+        arm_enum = None
+        if arm == "left":
+            arms_to_release = [Arms.LEFT]
+        elif arm == "right":
+            arms_to_release = [Arms.RIGHT]
+        else:
+            # Default to both arms
+            arms_to_release = [Arms.LEFT, Arms.RIGHT]
+            
+        with simulated_robot:
+            print(f"API: Performing emergency release for {arm if arm else 'both'} arm(s)")
+            
+            success = False
+            errors = []
+            
+            # Try several methods to ensure release
+            for arm_to_release in arms_to_release:
+                # Method 1: Try using PlaceAction with a downward pose
+                try:
+                    print(f"API: Attempting direct place action on {arm_to_release}")
+                    # Create a simple release pose directly below the current gripper position
+                    drop_pose = Pose([0, 0, -0.3], [0, 0, 0, 1], frame='gripper')
+                    
+                    # For this emergency release, we don't care if it fails due to no object being held
+                    try:
+                        PlaceAction(
+                            arms=[arm_to_release],
+                            target_locations=[drop_pose]
+                        ).resolve().perform()
+                        success = True
+                        print(f"API: Successfully released object from {arm_to_release} using place action")
+                    except Exception as e:
+                        errors.append(f"Place action failed: {str(e)}")
+                except Exception as e:
+                    errors.append(f"Method 1 failed for {arm_to_release}: {str(e)}")
+                
+                # Method 2: Update transforms and try again with ParkArms
+                try:
+                    print(f"API: Attempting to park {arm_to_release} arm")
+                    ParkArmsAction([arm_to_release]).resolve().perform()
+                    success = True
+                    print(f"API: Successfully parked {arm_to_release} arm")
+                except Exception as e:
+                    errors.append(f"Method 2 failed for {arm_to_release}: {str(e)}")
+            
+            # Always move torso to a safe position
+            try:
+                MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+                print("API: Torso moved to high position")
+            except Exception as e:
+                errors.append(f"Failed to move torso: {str(e)}")
+            
+            if success:
+                return {
+                    "status": "success",
+                    "message": f"Successfully released objects from {arm if arm else 'both'} arm(s)"
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": f"All release methods failed: {'; '.join(errors)}"
+                }
+                
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": f"Error during force release: {str(e)}"}
+
+def reset_robot_state():
+    """
+    Reset the robot to a safe state by parking arms, adjusting torso, and releasing any held objects.
+    
+    This function is useful when the robot gets stuck or is in an unknown state.
+    
+    Returns:
+        dict: Result of the operation
+    """
+    try:
+        with simulated_robot:
+            print("API: Resetting robot state...")
+            
+            # First try to force release any held objects
+            try:
+                release_result = force_release_object()
+                if release_result["status"] == "error":
+                    print(f"Warning: Object release failed: {release_result['message']}")
+            except Exception as e:
+                print(f"Warning: Error during object release: {str(e)}")
+            
+            # Make sure the torso is in a good position
+            try:
+                MoveTorsoAction([TorsoState.HIGH]).resolve().perform()
+                print("API: Torso moved to high position")
+            except Exception as e:
+                print(f"Warning: Failed to move torso: {str(e)}")
+            
+            # Park the arms
+            try:
+                ParkArmsAction([Arms.BOTH]).resolve().perform()
+                print("API: Arms parked")
+            except Exception as e:
+                print(f"Warning: Failed to park arms: {str(e)}")
+            
+            # Move robot to a neutral position if possible
+            try:
+                neutral_position = [0, 0, 0]  # Center of the world
+                navigate_action = NavigateAction(
+                    target_locations=[Pose(neutral_position)]
+                ).resolve()
+                navigate_action.perform()
+                print("API: Robot moved to neutral position")
+            except Exception as e:
+                print(f"Warning: Failed to move robot: {str(e)}")
+            
+            return {
+                "status": "success",
+                "message": "Robot state has been reset"
+            }
+            
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": f"Error during robot reset: {str(e)}"}
     
 import itertools  # Add this import if not already present
 
@@ -1532,7 +1786,7 @@ def pick_and_place_on_surface(object_name=None, surface_name=None, offset_x=0, o
         dict: Result of the operation
     """
     try:
-        from utils.kitchen_surfaces import get_surface_position
+        from utils.kitchen_surfaces import get_surface_position, PLACEMENT_SURFACES
         from environment import get_world
         
         # Default values
@@ -1541,26 +1795,56 @@ def pick_and_place_on_surface(object_name=None, surface_name=None, offset_x=0, o
             
         if surface_name is None:
             surface_name = "kitchen_island_surface"  # Default placement surface
+        
+        # Convert and round offsets
+        offset_x = round(float(offset_x), 3)
+        offset_y = round(float(offset_y), 3)
             
         # Get the world
         world = get_world()
         if not world:
             return {"status": "error", "message": "World not initialized"}
             
-        # Get surface position
-        surface_pos = get_surface_position(world, surface_name)
-        if not surface_pos:
-            return {"status": "error", "message": f"Surface '{surface_name}' position not found"}
+        # IMPORTANT: First prioritize the dictionary position for reliable placement
+        dict_position = None
+        if surface_name in PLACEMENT_SURFACES and "position" in PLACEMENT_SURFACES[surface_name]:
+            dict_position = PLACEMENT_SURFACES[surface_name]["position"]
+            dict_position = [round(float(val), 3) for val in dict_position]
+            print(f"API: Using dictionary position for {surface_name}: {dict_position}")
         
-        # Add offsets to position and height adjustment for object placement
-        target_location = [
-            surface_pos[0] + offset_x,  # X with offset
-            surface_pos[1] + offset_y,  # Y with offset
-            surface_pos[2] + 0.1        # Z with height adjustment to place on top
-        ]
+        # Only use world position as fallback - it can be unreliable  
+        if dict_position:
+            surface_pos = dict_position
+        else:
+            # Get surface position from world
+            surface_pos = get_surface_position(world, surface_name)
+            if not surface_pos:
+                return {"status": "error", "message": f"Surface '{surface_name}' position not found"}
+            # Round surface position values
+            surface_pos = [round(float(val), 3) for val in surface_pos]
+            
+        print(f"API: Surface position for {surface_name}: {surface_pos}")
         
-        # round off each value in target_location to 2 decimal places
-        target_location = [round(val, 2) for val in target_location]
+        # Add offsets to position and use dictionary height for reliability
+        target_location = None
+        if surface_name in PLACEMENT_SURFACES and "height" in PLACEMENT_SURFACES[surface_name]:
+            # Use the dictionary height for more reliable Z position
+            height = PLACEMENT_SURFACES[surface_name]["height"]
+            target_location = [
+                surface_pos[0] + offset_x,  # X with offset
+                surface_pos[1] + offset_y,  # Y with offset
+                height + 0.1               # Z using dictionary height + 0.1 for clearance
+            ]
+        else:
+            # Fallback to surface position with basic adjustment
+            target_location = [
+                surface_pos[0] + offset_x,  # X with offset
+                surface_pos[1] + offset_y,  # Y with offset
+                surface_pos[2] + 0.1        # Z with height adjustment to place on top
+            ]
+        
+        # round off each value in target_location to 3 decimal places
+        target_location = [round(val, 3) for val in target_location]
 
         print(f"API: Picking up {object_name} and placing on surface {surface_name} at position {target_location}")
         
@@ -1583,3 +1867,52 @@ def pick_and_place_on_surface(object_name=None, surface_name=None, offset_x=0, o
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": f"Error during pick and place on surface: {str(e)}"}
+
+def return_object_to_origin(object_desig, original_position, pickup_arm):
+    """
+    Return an object to its original position when placement fails.
+    
+    Args:
+        object_desig: Object designator of the held object
+        original_position: Original [x, y, z] position of the object
+        pickup_arm: Arm currently holding the object
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        print(f"API: Attempting to return object to original position {original_position}")
+        original_pose = Pose(original_position)
+        
+        # Try to place the object back at its original position
+        PlaceAction(
+            object_designator_description=object_desig,
+            target_locations=[original_pose],
+            arms=[pickup_arm]
+        ).resolve().perform()
+        
+        # Park arms after placing
+        ParkArmsAction([Arms.BOTH]).resolve().perform()
+        print("API: Object returned to original position")
+        return True
+    except Exception as e:
+        print(f"API: Failed to return object to original position: {str(e)}")
+        # Try to at least release the object
+        try:
+            # Create a simple release pose directly below the current gripper position
+            drop_pose = Pose([0, 0, -0.3], [0, 0, 0, 1], frame='gripper')
+            PlaceAction(
+                object_designator_description=object_desig,
+                target_locations=[drop_pose],
+                arms=[pickup_arm]
+            ).resolve().perform()
+            print("API: Object released using PlaceAction")
+        except Exception as release_error:
+            print(f"API: Failed to release object using PlaceAction: {str(release_error)}")
+            # If PlaceAction also fails, try to just park the arms at least
+            try:
+                ParkArmsAction([Arms.BOTH]).resolve().perform()
+                print("API: Arms parked")
+            except Exception as park_error:
+                print(f"API: Failed to park arms: {str(park_error)}")
+        return False
