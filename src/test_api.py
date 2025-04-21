@@ -113,7 +113,7 @@ def test_move_robot():
 def test_pickup_and_place():
     payload = {
         "command": "pickup_and_place",
-        "params": {"object_name": "cereal1", "target_location": [-1.0675, 1.7192, 0.95]}
+        "params": {"object_name": "cereal35", "target_location": [-1.0675, 1.7192, 0.95]}
     }
     response = requests.post(url, json=payload)
     print(response.json())
@@ -237,7 +237,8 @@ def test_spawn_objects():
         "command": "spawn_objects",
         "params": {
             "object_choice": "cereal",
-            "coordinates": [1.4, 0.4, 0.95],
+            "coordinates": [1.825, -0.74, 1],
+            "color": "red",
         }
     }
     response = requests.post(url, json=payload)
@@ -292,10 +293,25 @@ def test_get_placement_surfaces():
 
 def test_spawn_in_area():
     """Test the spawn_in_area API endpoint."""
+    primary_surfaces_list = [
+    "sink_area_surface",
+    "kitchen_island_surface",
+    "kitchen_island_stove",
+    "table_area_main",
+    "oven_area_area",
+    ]
+
+    secondary_surfaces_list = [
+        "sink_area_sink",
+        "oven_area_oven_door",
+        "fridge_area",
+    ]
+
+
     print("\nTesting spawn_in_area...")
     
     # Choose a reliable surface to test with
-    surface_name = "kitchen_island_surface"
+    surface_name = "sink_area_surface"
     # lets create a random number from 1 to 100
     import random
     random_number = random.randint(1, 100)
@@ -303,7 +319,7 @@ def test_spawn_in_area():
     payload = {
         "command": "spawn_in_area",
         "params": {
-            "object_choice": "cereal",
+            "object_choice": "spoon",
             "surface_name": surface_name,
             "color": "red",
             "name": f"test_cereal_{random_number}",  # Unique name using timestamp
@@ -352,6 +368,8 @@ def test_pick_and_place_on_surface():
     return result 
 
 
+# call spawn objects multiple times
+
 test_move = False
 test_camera_function = False
 test_pickup_and_place_function = False
@@ -364,16 +382,16 @@ test_move_and_rotate_function = False
 test_move_torso_function = False
 test_park_arms_function = False
 test_enhanced_camera_function = False
-test_spawn_objects_function = False
+test_spawn_objects_function = True
 test_robot_pose_function = False
 # To enable the test, set the flag to True:
 test_calculate_relative_distances_function = False
 
 # Test flags for kitchen surface functions
-test_get_placement_surfaces_function = False
+test_get_placement_surfaces_function = True
 test_kitchen_surfaces_function = False  # Enable the combined kitchen surfaces test
-test_spawn_in_area_function = True  # Enable the spawn_in_area test
-test_pick_and_place_on_surface_function = True
+test_spawn_in_area_function = False  # Enable the spawn_in_area test
+test_pick_and_place_on_surface_function = False
 
 def main():
     if test_move == True:

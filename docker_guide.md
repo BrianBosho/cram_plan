@@ -17,7 +17,7 @@ This guide provides step-by-step instructions for running the PyCRAM simulation 
 - Open a new PowerShell terminal.
 - Set the DISPLAY environment variable:
   ```powershell
-  $env:DISPLAY = "192.168.1.196:0.0"
+  $env:DISPLAY = "172.30.144.1:0.0"
   ```
 - Confirm it is set correctly:
   ```powershell
@@ -49,7 +49,7 @@ This guide provides step-by-step instructions for running the PyCRAM simulation 
 ### 6. Set the DISPLAY Variable in Docker
 - In the Docker bash terminal, set the DISPLAY variable to match Windows:
   ```bash
-  export DISPLAY=192.168.1.196:0.0
+  export DISPLAY=172.30.144.1:0.0
   ```
 - Confirm it:
   ```bash

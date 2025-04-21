@@ -7,14 +7,86 @@ from pycram.datastructures.enums import ObjectType
 from utils.color_wrapper import ColorWrapper
 import numpy as np
 
+primary_surfaces_list = [
+    "sink_area_surface",
+    "kitchen_island_surface",
+    "kitchen_island_stove",
+    "table_area_main",
+    "oven_area_area",
+    ]
+
+secondary_surfaces_list = [
+    "sink_area_sink",
+    "oven_area_oven_door",
+    "fridge_area",
+]
+
+
+# # Key surfaces where objects can be placed
+# PLACEMENT_SURFACES = {
+#     # Primary surfaces
+#     "sink_area_surface": {
+#         "description": "Countertop around the sink",
+#         "height": 0.95,
+#         "recommended_for": ["utensils", "dishes", "cleaning_supplies"],
+#         "position": [1.4, 0.6, 0.95]  # From URDF: sink_area_footprint (1.825, 1.32) + sink_area (0.29, 1.03) + height
+#     },
+#     "kitchen_island_surface": {
+#         "description": "Kitchen island's main countertop",
+#         "height": 0.95,
+#         "recommended_for": ["food", "dishes", "utensils", "cooking_supplies"],
+#         "position": [-1.0675, 1.7192, 0.95]  # From URDF: kitchen_island_footprint (-1.365, 0.59) + kitchen_island (0.2975, 1.1292) + height
+#     },
+#     "kitchen_island_stove": {
+#         "description": "Cooking surface on the island",
+#         "height": 0.97,
+#         "recommended_for": ["pots", "pans", "cooking_utensils"],
+#         "position": [-1.0675, 2.485, 0.97]  # From URDF: kitchen_island position + (0, 0.7658) + height
+#     },
+#     "table_area_main": {
+#         "description": "Dining table surface",
+#         "height": 0.74,
+#         "recommended_for": ["dishes", "food", "utensils"],
+#         "position": [-1.4, -0.8, 0.55]  # From URDF: direct position
+#     },
+#     "oven_area_area": {
+#         "description": "Countertop in the oven area",
+#         "height": 0.95,
+#         "recommended_for": ["baking_supplies", "hot_food"],
+#         "position": [1.805, 2.52, 0.95]  # From URDF: oven_area_footprint (1.805, 2.52) + oven_area (0.29, 0.6) + height
+#     },
+    
+#     # Secondary surfaces
+#     "sink_area_sink": {
+#         "description": "Inside the sink",
+#         "height": 0.90,
+#         "recommended_for": ["dirty_dishes", "washing_items"],
+#         "position": [-1.4, 0, 0.90]  # From URDF: sink_area_surface + (0.005, 0.47) + adjusted height
+#     },
+#     "oven_area_oven_door": {
+#         "description": "Top of the closed oven door",
+#         "height": 0.85,
+#         "recommended_for": ["hot_dishes", "mitts"],
+#         "position": [2.3687, 3.12, 0.85]  # From URDF: oven_area + (0.2737, 0) + adjusted height
+#     },
+#     "fridge_area": {
+#         "description": "Top of the refrigerator",
+#         "height": 1.75,
+#         "recommended_for": ["lightweight_items", "cereal_boxes"],
+#         "position": [1.825, -0.0.74, 1]  # From URDF: fridge_area_footprint (1.825, -0.74) + fridge_area (0.29, 0.3) + height
+#     }
+# }
+
+
+
 # Key surfaces where objects can be placed
-PLACEMENT_SURFACES = {
+TESTED_PLACEMENT_SURFACES = {
     # Primary surfaces
     "sink_area_surface": {
         "description": "Countertop around the sink",
         "height": 0.95,
         "recommended_for": ["utensils", "dishes", "cleaning_supplies"],
-        "position": [2.115, 2.35, 0.95]  # From URDF: sink_area_footprint (1.825, 1.32) + sink_area (0.29, 1.03) + height
+        "position": [1.4, 0.6, 0.95]  # From URDF: sink_area_footprint (1.825, 1.32) + sink_area (0.29, 1.03) + height
     },
     "kitchen_island_surface": {
         "description": "Kitchen island's main countertop",
@@ -32,35 +104,19 @@ PLACEMENT_SURFACES = {
         "description": "Dining table surface",
         "height": 0.74,
         "recommended_for": ["dishes", "food", "utensils"],
-        "position": [-1.4, -1.05, 0.74]  # From URDF: direct position
-    },
-    "oven_area_area": {
-        "description": "Countertop in the oven area",
-        "height": 0.95,
-        "recommended_for": ["baking_supplies", "hot_food"],
-        "position": [2.095, 3.12, 0.95]  # From URDF: oven_area_footprint (1.805, 2.52) + oven_area (0.29, 0.6) + height
-    },
+        "position": [-1.4, -0.8, 0.55]  # From URDF: direct position
+    },   
     
-    # Secondary surfaces
     "sink_area_sink": {
         "description": "Inside the sink",
         "height": 0.90,
         "recommended_for": ["dirty_dishes", "washing_items"],
-        "position": [2.12, 2.82, 0.90]  # From URDF: sink_area_surface + (0.005, 0.47) + adjusted height
-    },
-    "oven_area_oven_door": {
-        "description": "Top of the closed oven door",
-        "height": 0.85,
-        "recommended_for": ["hot_dishes", "mitts"],
-        "position": [2.3687, 3.12, 0.85]  # From URDF: oven_area + (0.2737, 0) + adjusted height
-    },
-    "fridge_area": {
-        "description": "Top of the refrigerator",
-        "height": 1.75,
-        "recommended_for": ["lightweight_items", "cereal_boxes"],
-        "position": [2.115, -0.44, 1.75]  # From URDF: fridge_area_footprint (1.825, -0.74) + fridge_area (0.29, 0.3) + height
-    }
+        "position": [1.4, 0, 0.90]  # From URDF: sink_area_surface + (0.005, 0.47) + adjusted height
+    }  
 }
+
+PLACEMENT_SURFACES = TESTED_PLACEMENT_SURFACES.copy()
+
 
 def get_available_surfaces():
     """

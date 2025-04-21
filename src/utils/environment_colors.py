@@ -47,6 +47,8 @@ KITCHEN_COLOR_RULES = [
     (r".*oven_door",      "metal"),
     (r".*fridge_door$",   "metal"),
     (r".*oven_panel",     "black"),
+    # ADD kitchen_island_stove and make it metal
+    (r".*stove.*",        "metal"),
     
     # Different drawer colors by area
     (r"sink_area.*drawer.*main", "gray"),
