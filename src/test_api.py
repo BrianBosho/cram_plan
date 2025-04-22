@@ -381,7 +381,7 @@ def test_pick_and_place_on_surface():
    
     object_name = "cereal1"  # Use the name of an existing object
     
-    surface_name = "sink_area_surface"
+    surface_name = "kitchen_island_surface"
     payload = {
         "command": "pick_and_place_on_surface",
         "params": {
@@ -528,7 +528,7 @@ test_move_and_rotate_function = False
 test_move_torso_function = False
 test_park_arms_function = False
 test_enhanced_camera_function = False
-test_spawn_objects_function = False
+test_spawn_objects_function = True
 test_robot_pose_function = False
 # To enable the test, set the flag to True:
 test_calculate_relative_distances_function = False
@@ -536,9 +536,9 @@ test_calculate_relative_distances_function = False
 # Test flags for kitchen surface functions
 test_get_placement_surfaces_function = False
 test_kitchen_surfaces_function = False  # Enable the combined kitchen surfaces test
-test_spawn_in_area_function = False  # Enable the spawn_in_area test
-test_pick_and_place_on_surface_function = False
-test_get_world_objects_function = True
+test_spawn_in_area_function = True  # Enable the spawn_in_area test
+test_pick_and_place_on_surface_function = True
+test_get_world_objects_function = False
 
 def main():
     if test_move == True:

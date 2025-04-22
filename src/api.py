@@ -89,6 +89,14 @@ from robot_actions_api import (
     pick_and_place_on_surface
 )
 
+# Import the reset functions
+from reset import (
+    reset_robot_state,
+    reset_world,
+    reset_all,
+    force_release_object
+)
+
 # from camera import get_camera_images    
 
 # Static files mounting - if we have a 'static' directory
@@ -186,6 +194,22 @@ async def execute_command(data: dict = Body(...)):
         elif command == "pick_and_place_on_surface":
             result = pick_and_place_on_surface(**params)
             return result
+        # Add reset functionality endpoints
+        elif command == "reset_robot_state":
+            result = reset_robot_state()
+            return result
+        elif command == "reset_world":
+            spawn_default_objects = params.get("spawn_default_objects", True)
+            result = reset_world(spawn_default_objects)
+            return result
+        elif command == "reset_all":
+            spawn_default_objects = params.get("spawn_default_objects", True)
+            result = reset_all(spawn_default_objects)
+            return result
+        elif command == "force_release_object":
+            arm = params.get("arm", None)
+            result = force_release_object(arm)
+            return result
             
 
         else:
@@ -222,6 +246,10 @@ async def list_commands():
             "spawn_on_surface",
             "get_objects_on_surface",
             "pick_and_place_on_surface",
+            "reset_robot_state",
+            "reset_world",
+            "reset_all",
+            "force_release_object",
         ]
     }
 
