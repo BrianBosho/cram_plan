@@ -31,32 +31,42 @@ TESTED_PLACEMENT_SURFACES = {
         "description": "Countertop around the sink",
         "height": 0.95,
         "recommended_for": ["utensils", "dishes", "cleaning_supplies"],
-        "position": [1.4, 0.6, 0.95]  # From URDF: sink_area_footprint (1.825, 1.32) + sink_area (0.29, 1.03) + height
+        "position": [1.4, 0.6, 0.95],  # From URDF: sink_area_footprint (1.825, 1.32) + sink_area (0.29, 1.03) + height
+        "max_dx": 0.2,  # Maximum displacement in x direction
+        "max_dy": 0.5   # Maximum displacement in y direction
     },
     "kitchen_island_surface": {
         "description": "Kitchen island's main countertop",
         "height": 0.95,
         "recommended_for": ["food", "dishes", "utensils", "cooking_supplies"],
-        "position": [-1.0675, 1.7192, 0.95]  # From URDF: kitchen_island_footprint (-1.365, 0.59) + kitchen_island (0.2975, 1.1292) + height
+        "position": [-1.0675, 1.7192, 0.95],  # From URDF: kitchen_island_footprint (-1.365, 0.59) + kitchen_island (0.2975, 1.1292) + height
+        "max_dx": 0.2,
+        "max_dy": 0.5
     },
     "kitchen_island_stove": {
         "description": "Cooking surface on the island",
         "height": 0.97,
         "recommended_for": ["pots", "pans", "cooking_utensils"],
-        "position": [-1.0675, 2.485, 0.97]  # From URDF: kitchen_island position + (0, 0.7658) + height
+        "position": [-1.0675, 2.485, 0.97],  # From URDF: kitchen_island position + (0, 0.7658) + height
+        "max_dx": 0.5,
+        "max_dy": 0.5
     },
     "table_area_main": {
         "description": "Dining table surface",
         "height": 0.55,
         "recommended_for": ["dishes", "food", "utensils"],
-        "position": [-1.4, -0.8, 0.55]  # From URDF: direct position
+        "position": [-1.4, -0.8, 0.55],  # From URDF: direct position
+        "max_dx": 0.5,
+        "max_dy": 0.1
     },   
     
     "sink_area_sink": {
         "description": "Inside the sink",
         "height": 0.90,
         "recommended_for": ["dirty_dishes", "washing_items"],
-        "position": [1.4, 0, 0.90]  # From URDF: sink_area_surface + (0.005, 0.47) + adjusted height
+        "position": [1.4, 0, 0.90],  # From URDF: sink_area_surface + (0.005, 0.47) + adjusted height
+        "max_dx": 0.2,
+        "max_dy": 0.3
     }  
 }
 
@@ -224,6 +234,23 @@ def get_surface_position(world, surface_name):
             print(f"Using fallback position for {surface_name}: {fallback_position}")
             return fallback_position
         return None
+
+def get_surface_offsets(surface_name):
+    """
+    Get the maximum allowed displacement in x and y directions for a specific surface.
+    
+    Args:
+        surface_name (str): Name of the surface
+        
+    Returns:
+        tuple: (max_dx, max_dy) or (0.0, 0.0) if surface not found
+    """
+    if surface_name in PLACEMENT_SURFACES:
+        surface = PLACEMENT_SURFACES[surface_name]
+        return (surface.get("max_dx", 0.0), surface.get("max_dy", 0.0))
+    else:
+        print(f"Warning: Surface {surface_name} not found in placement surfaces")
+        return (0.0, 0.0)
 
     """
     Detect objects that are on a specific surface.

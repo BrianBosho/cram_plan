@@ -1,8 +1,50 @@
 import requests
 from utils.rotation import euler_to_quaternion
+import random
 
 url = "http://localhost:8001/execute"
 
+def get_random_surface_position(surface_name):
+    """
+    Helper function to get a random position within the allowed displacement
+    bounds for a specific surface.
+    
+    Args:
+        surface_name (str): Name of the surface
+        
+    Returns:
+        tuple: (offset_x, offset_y) - Random offsets within allowed bounds
+    """
+    # Get placement surfaces to check max offsets
+    payload = {
+        "command": "get_placement_surfaces",
+        "params": {}
+    }
+    response = requests.post(url, json=payload)
+    result = response.json()
+    
+    # Default offsets
+    max_dx, max_dy = 0.5, 0.5
+    
+    # Get the max offset values from the surface if available
+    if (result["status"] == "success" and 
+        surface_name in result["surfaces"]):
+        
+        # Try to fetch max_dx and max_dy directly from API response
+        surface_info = result["surfaces"][surface_name]
+        if "max_dx" in surface_info and "max_dy" in surface_info:
+            max_dx = surface_info["max_dx"]
+            max_dy = surface_info["max_dy"]
+    
+    # Generate random offsets within the allowed bounds
+    offset_x = random.uniform(-max_dx, max_dx)
+    offset_y = random.uniform(-max_dy, max_dy)
+    
+    # Round to 3 decimal places
+    offset_x = round(offset_x, 3)
+    offset_y = round(offset_y, 3)
+    
+    return (offset_x, offset_y)
 
 def test_camera():
     import requests
@@ -292,39 +334,24 @@ def test_get_placement_surfaces():
 
 
 def test_spawn_in_area():
-    """Test the spawn_in_area API endpoint."""
-    primary_surfaces_list = [
-    "sink_area_surface",
-    "kitchen_island_surface",
-    "kitchen_island_stove",
-    "table_area_main",
-    "oven_area_area",
-    ]
-
-    secondary_surfaces_list = [
-        "sink_area_sink",
-        "oven_area_oven_door",
-        "fridge_area",
-    ]
-
-
-    print("\nTesting spawn_in_area...")
+    """Test the spawn_in_area API endpoint with random offsets."""
+    print("\nTesting spawn_in_area with random offsets...")
     
     # Choose a reliable surface to test with
-    surface_name = "sink_area_surface"
-    # lets create a random number from 1 to 100
+    surface_name = "kitchen_island_surface"
     import random
     random_number = random.randint(1, 100)
     
+    # Test with None values for offsets to trigger random placement
     payload = {
         "command": "spawn_in_area",
         "params": {
             "object_choice": "spoon",
             "surface_name": surface_name,
-            "color": "red",
-            "name": f"test_cereal_{random_number}",  # Unique name using timestamp
-            "offset_x": 0.1,
-            "offset_y": 0.1
+            "color": "blue",
+            "name": f"test_spoon_{random_number}",
+            "offset_x": None,  # Use None to get random offset
+            "offset_y": None   # Use None to get random offset
         }
     }
     response = requests.post(url, json=payload)
@@ -334,25 +361,26 @@ def test_spawn_in_area():
         print(f"Successfully spawned object: {result['message']}")
         print(f"Object details: {result['object']['name']} of type {result['object']['type']}")
         print(f"Position: {result['object']['pose']}")
+        print(f"Random offsets used: x={result['offsets'][0]}, y={result['offsets'][1]}")
     else:
         print(f"Error: {result['message']}")
     
     return result   
+
 def test_pick_and_place_on_surface():
-    """Test the pick_and_place_on_surface API endpoint."""
-    print("\nTesting pick_and_place_on_surface...")
+    """Test the pick_and_place_on_surface API endpoint with random offsets."""
+    print("\nTesting pick_and_place_on_surface with random offsets...")
    
-    object_name = "cereal1"  # Use the name of the object we just spawned
-    # print(f"Created test object: {object_name}")
+    object_name = "cereal1"  # Use the name of an existing object
     
-    surface_name = "sink_area_sink"
+    surface_name = "sink_area_surface"
     payload = {
         "command": "pick_and_place_on_surface",
         "params": {
             "object_name": object_name,
             "surface_name": surface_name,
-            "offset_x": 0.1,
-            "offset_y": 0.1,
+            "offset_x": None,  # Use None to get random offset
+            "offset_y": None,  # Use None to get random offset
             "arm": "right"
         }
     }
@@ -361,6 +389,7 @@ def test_pick_and_place_on_surface():
     
     if result["status"] == "success":
         print(f"Successfully picked up {object_name} and placed on {surface_name}")
+        print(f"Random offsets used: x={result['offsets'][0]}, y={result['offsets'][1]}")
         print(f"Message: {result['message']}")
     else:
         print(f"Error: {result['message']}")

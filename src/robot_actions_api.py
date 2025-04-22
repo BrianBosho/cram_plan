@@ -1052,20 +1052,20 @@ def spawn_objects(object_choice=None, coordinates=None, color=None, name=None):
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
-def spawn_in_area(object_choice=None, surface_name=None, color=None, name=None, offset_x=0, offset_y=0):
+def spawn_in_area(object_choice=None, surface_name=None, color=None, name=None, offset_x=None, offset_y=None):
     """
     Spawn an object in a specific kitchen area or surface.
     
     This function extends spawn_objects by allowing specification of a named surface
-    rather than explicit coordinates.
+    rather than explicit coordinates. Can use random placement within allowed surface bounds.
     
     Args:
         object_choice (str): "cereal", "milk", "spoon", "bowl", or a custom name
         surface_name (str): Name of the surface to place on (e.g., "kitchen_island_surface")
         color (str): Color name (e.g., "red", "blue") or None for default
         name (str): Custom name for the object or None for default
-        offset_x (float): X offset from center of surface (default: 0)
-        offset_y (float): Y offset from center of surface (default: 0)
+        offset_x (float): X offset from center of surface. If None, a random offset will be used
+        offset_y (float): Y offset from center of surface. If None, a random offset will be used
         
     Returns:
         dict: Information about the created object
@@ -1077,6 +1077,13 @@ def spawn_in_area(object_choice=None, surface_name=None, color=None, name=None, 
         # Default values
         if surface_name is None:
             surface_name = "kitchen_island_surface"  # Default surface
+        
+        # Generate random offsets if not provided
+        if offset_x is None or offset_y is None:
+            random_x, random_y = get_random_surface_offset(surface_name)
+            offset_x = random_x if offset_x is None else offset_x
+            offset_y = random_y if offset_y is None else offset_y
+            print(f"API: Using random offsets for {surface_name}: x={offset_x}, y={offset_y}")
             
         # Get the world
         world = get_world()
@@ -1108,6 +1115,7 @@ def spawn_in_area(object_choice=None, surface_name=None, color=None, name=None, 
         # Add surface info to the result if successful
         if result["status"] == "success":
             result["surface"] = surface_name
+            result["offsets"] = [offset_x, offset_y]
             result["message"] = f"Object '{result['object']['name']}' created on {surface_name}"
             
         return result
@@ -1768,18 +1776,18 @@ def get_placement_surfaces():
         traceback.print_exc()
         return {"status": "error", "message": f"Error getting placement surfaces: {str(e)}"}
 
-def pick_and_place_on_surface(object_name=None, surface_name=None, offset_x=0, offset_y=0, arm=None):
+def pick_and_place_on_surface(object_name=None, surface_name=None, offset_x=None, offset_y=None, arm=None):
     """
     Pick up an object and place it on a specified kitchen surface.
     
     This function extends pickup_and_place by allowing specification of a named surface
-    rather than explicit coordinates for placement.
+    rather than explicit coordinates for placement. Can use random placement within allowed bounds.
     
     Args:
         object_name (str): Name of the object to pick up
         surface_name (str): Name of the surface to place on (e.g., "kitchen_island_surface")
-        offset_x (float): X offset from center of surface (default: 0)
-        offset_y (float): Y offset from center of surface (default: 0)
+        offset_x (float): X offset from center of surface. If None, a random offset will be used
+        offset_y (float): Y offset from center of surface. If None, a random offset will be used
         arm (str): Which arm to use ('left', 'right', or None for automatic)
         
     Returns:
@@ -1796,6 +1804,13 @@ def pick_and_place_on_surface(object_name=None, surface_name=None, offset_x=0, o
         if surface_name is None:
             surface_name = "kitchen_island_surface"  # Default placement surface
         
+        # Generate random offsets if not provided
+        if offset_x is None or offset_y is None:
+            random_x, random_y = get_random_surface_offset(surface_name)
+            offset_x = random_x if offset_x is None else offset_x
+            offset_y = random_y if offset_y is None else offset_y
+            print(f"API: Using random offsets for {surface_name}: x={offset_x}, y={offset_y}")
+            
         # Convert and round offsets
         offset_x = round(float(offset_x), 3)
         offset_y = round(float(offset_y), 3)
@@ -1916,3 +1931,29 @@ def return_object_to_origin(object_desig, original_position, pickup_arm):
             except Exception as park_error:
                 print(f"API: Failed to park arms: {str(park_error)}")
         return False
+
+def get_random_surface_offset(surface_name):
+    """
+    Calculate a random offset position within the allowed bounds for a surface.
+    
+    Args:
+        surface_name (str): Name of the surface to calculate offset for
+        
+    Returns:
+        tuple: (offset_x, offset_y) random offset values within the surface bounds
+    """
+    from utils.kitchen_surfaces import get_surface_offsets
+    import random
+    
+    # Get maximum allowed displacement bounds for the surface
+    max_dx, max_dy = get_surface_offsets(surface_name)
+    
+    # Generate random offset within the bounds
+    offset_x = random.uniform(-max_dx, max_dx)
+    offset_y = random.uniform(-max_dy, max_dy)
+    
+    # Round to 3 decimal places for consistency
+    offset_x = round(offset_x, 3)
+    offset_y = round(offset_y, 3)
+    
+    return (offset_x, offset_y)
