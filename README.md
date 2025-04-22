@@ -1,10 +1,40 @@
-# PyCRAM Robot API
+# PyCRAM API Server
+
+[![CI workflow](https://github.com/BrianBosho/cram_plan/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/BrianBosho/cram_plan/actions/workflows/CI.yml)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://github.com/pycqa/isort)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Code style: flake8](https://img.shields.io/badge/code%20style-flake8-red.svg)](https://github.com/pycqa/flake8)
+
+A command-line application and a FastAPI-based REST API for controlling a PR2 robot in a BulletWorld simulation
+environment via [PyCRAM](https://pycram.readthedocs.io/en/latest/index.html)
 
 ## Overview
 
-This project provides an API interface for controlling and interacting with a PyCRAM robot simulation. PyCRAM is a toolbox for designing, implementing, and deploying software on autonomous robots. The API allows users to control robot movement, manipulate objects, perceive the environment, and capture camera data from the robot's sensors through a web interface or programmatic API calls.
+This software provides the following functions for controlling a PR2 robot and the simulated environment in which it
+resides:
 
-The API server is built with FastAPI and provides a simple RESTful interface to the underlying PyCRAM simulation. A web-based control panel is also included for easy interaction without writing code.
+1. Park the robot's arms
+2. Adjust the robot's torso
+3. Get the robot's pose
+4. Spawn objects in the environment
+5. Move the robot within its environment
+6. Find if an object of some type is in the environment
+7. Find if an object with some name is in the environment
+8. Find if an object of some type is in some location of the environment
+9. Find if an object with some name is in some location of the environment
+10. Look at an object
+11. Pick an object and place it at a specific coordinate
+12. Pick an object and place it at a specific location
+13. Capture an image using the robot's camera
+14. Get a list of objects in the robot's field of view
+15. Get distances between objects in the environment
+16. Get information about placement surfaces in the environment
+17. Spawn objects on specific surfaces with offsets
+18. Pick and place objects on surfaces with precise positioning
+19. Get enhanced visualization of camera images
+20. Calculate relative distances between specific objects
+21. Retrieve detailed information about world objects with filtering
+22. Exit the simulation
 
 ## Key Components
 
@@ -451,6 +481,35 @@ Picks up an object and places it on a specific named surface.
   "surface": "string",
   "position": [x, y, z],
   "arm_used": "string"
+}
+```
+
+#### 19. get_world_objects
+
+Retrieves detailed information about world objects with filtering.
+
+**Parameters:**
+- `exclude_types` (array): List of object types to exclude
+- `obj_type` (string): Type of object to retrieve
+- `area` (string): Area to search for objects
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Successfully retrieved objects from the world",
+  "objects": {
+    "object_name": {
+      "type": "string",
+      "position": {
+        "x": number,
+        "y": number,
+        "z": number
+      },
+      "color": "string",
+      "area": "string"
+    }
+  }
 }
 ```
 

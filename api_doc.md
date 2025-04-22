@@ -37,8 +37,6 @@ All responses follow this general format:
 
 Creates an object in the simulation environment.
 
-**Source**: `robot_actions_api.py:183-266`
-
 #### Parameters
 
 | Parameter | Type | Required | Default | Description |
@@ -78,17 +76,9 @@ Creates an object in the simulation environment.
 - If file for the specified object type is not found
 - Any exception during object creation
 
-#### Implementation Notes
-- For standard objects (cereal, milk, spoon, bowl), uses predefined ontology classes from PyCRAM
-- For custom objects, uses `ObjectType.GENERIC` and assumes STL file with same name exists
-- Creates a `ColorWrapper` object to handle color conversion to RGBA values
-- Logs created object information to console
-
 ### 2. move_robot
 
 Moves the robot to specified coordinates.
-
-**Source**: `robot_actions_api.py:97-124`
 
 #### Parameters
 
@@ -115,17 +105,9 @@ Moves the robot to specified coordinates.
 }
 ```
 
-#### Implementation Notes
-- Uses the `simulated_robot` context manager for robot control
-- Creates a `Pose` object from the coordinates
-- Resolves and performs a `NavigateAction` to move the robot
-- Logs navigation progress to console
-
 ### 3. pickup_and_place
 
 Picks up an object and places it at a target location.
-
-**Source**: `robot_actions_api.py:126-269`
 
 #### Parameters
 
@@ -162,19 +144,9 @@ Picks up an object and places it at a target location.
 - If placement location resolution fails
 - Any exception during pickup or place operations
 
-#### Implementation Notes
-- Uses case-insensitive object name lookup with fallback strategies
-- Parks arms and adjusts torso height prior to pickup
-- Uses `CostmapLocation` to find reachable positions for the robot
-- Has fallback placement logic if the costmap resolution times out
-- Implements a timeout mechanism for placement resolution (5 seconds)
-- Uses `ParkArmsAction` after placement to reset arm positions
-
 ### 4. robot_perceive
 
 Makes the robot perceive its environment.
-
-**Source**: `robot_actions_api.py:271-337`
 
 #### Parameters
 
@@ -208,17 +180,9 @@ Makes the robot perceive its environment.
 }
 ```
 
-#### Implementation Notes
-- Uses `LookAtAction` to orient the robot toward objects if possible
-- For table/counter/surface perception, attempts to detect common object types
-- Has fallback mechanism to directly access world objects if perception fails
-- Filters out the robot itself and environment objects from perception results
-
 ### 5. transport_object
 
 Transports an object to a target location.
-
-**Source**: `robot_actions_api.py:340-376`
 
 #### Parameters
 
@@ -249,18 +213,9 @@ Transports an object to a target location.
 }
 ```
 
-#### Implementation Notes
-- Converts arm string to the appropriate `Arms` enum value
-- Creates a `BelieveObject` designator to reference the object
-- Creates a `Pose` from the target location coordinates
-- Uses `TransportAction` to perform the transport operation
-- Logs transport progress to console
-
 ### 6. get_camera_images
 
 Captures images from the robot's camera and returns them as base64-encoded strings.
-
-**Source**: `robot_actions_api.py:636-693`
 
 #### Parameters
 
@@ -291,19 +246,9 @@ Captures images from the robot's camera and returns them as base64-encoded strin
 }
 ```
 
-#### Implementation Notes
-- Converts float target distance to the appropriate value
-- Uses `capture_camera_image` to get RGB, depth, and segmentation images
-- Encodes the images as base64 strings:
-  - For RGB images: converts to uint8 format, encodes as PNG, then to base64
-  - For depth images: normalizes to 0-255 range, encodes as PNG, then to base64
-- Uses OpenCV for image encoding
-
 ### 7. get_enhanced_camera_images
 
-Captures enhanced visualization of images from the robot's camera.
-
-**Source**: `robot_actions_api.py:695-734`
+Captures enhanced visualization of images from the robot's camera. Similar to `get_camera_images` but with improved visualizations.
 
 #### Parameters
 
@@ -334,17 +279,9 @@ Captures enhanced visualization of images from the robot's camera.
 }
 ```
 
-#### Implementation Notes
-- Similar to `get_camera_images` but uses matplotlib to create enhanced visualizations
-- Depth images are rendered with the 'viridis' colormap for better visualization
-- Images are saved to BytesIO buffers and then encoded to base64
-- Returns same data structure but with enhanced image visualizations
-
 ### 8. calculate_object_distances
 
 Calculates distances between objects in the world.
-
-**Source**: `robot_actions_api.py:81-95`
 
 #### Parameters
 
@@ -359,33 +296,32 @@ Calculates distances between objects in the world.
 When `source_object` is specified:
 ```json
 {
-  "object_name1": distance1,
-  "object_name2": distance2,
-  ...
+  "status": "success",
+  "message": "Distance calculation is successful",
+  "payload": {
+    "object_name1": distance1,
+    "object_name2": distance2,
+    ...
+  }
 }
 ```
 
 When calculating all pairwise distances:
 ```json
 {
-  "object1-to-object2": distance,
-  "object1-to-object3": distance,
-  ...
+  "status": "success",
+  "message": "Distance calculation is successful",
+  "payload": {
+    "object1-to-object2": distance,
+    "object1-to-object3": distance,
+    ...
+  }
 }
 ```
-
-#### Implementation Notes
-- Filters objects based on exclusion list
-- Can calculate distances from one source object to all others
-- Can calculate all pairwise distances between objects
-- Uses Euclidean distance formula for 3D positions
-- Returns empty dictionary if world is not initialized
 
 ### 9. look_at_object
 
 Makes the robot look at the specified object.
-
-**Source**: `robot_actions_api.py:378-408`
 
 #### Parameters
 
@@ -422,17 +358,9 @@ or
 - If the object is not found in the environment
 - If the robot cannot successfully look at the object (LookAtGoalNotReached)
 
-#### Implementation Notes
-- Converts object name to lowercase for case-insensitive comparison
-- Uses `BelieveObject` designator to resolve the object
-- Uses `LookAtAction` to make the robot look at the object
-- Handles `LookAtGoalNotReached` exception explicitly
-
 ### 10. detect_object
 
 Detects an object in the robot's environment and returns information about it.
-
-**Source**: `robot_actions_api.py:12-80`
 
 #### Parameters
 
@@ -495,18 +423,9 @@ Detects an object in the robot's environment and returns information about it.
 - If the world is not initialized
 - Any exception during detection
 
-#### Implementation Notes
-- First tries to orient the robot camera toward a central object
-- If `object_name` is provided, searches for that object directly in the world
-- Else uses `DetectAction` with `DetectionTechnique.ALL` to find objects
-- Handles multiple detection results appropriately
-- Extracts detailed information about detected objects including position and color
-
 ### 11. move_and_rotate
 
 Moves the robot to a specified location and/or rotates it to a specified orientation.
-
-**Source**: `robot_actions_api.py:736-795`
 
 #### Parameters
 
@@ -541,18 +460,9 @@ Moves the robot to a specified location and/or rotates it to a specified orienta
 - If robot is not found in world
 - Any exception during movement
 
-#### Implementation Notes
-- Gets current robot pose if location or angle is not provided
-- Uses `euler_to_quaternion` to convert angle to quaternion orientation
-- Creates a `Pose` object with position and orientation
-- Uses `NavigateAction` to move and rotate the robot
-- Logs navigation progress to console
-
 ### 12. move_torso
 
 Moves the robot's torso to a specified position.
-
-**Source**: `robot_actions_api.py:797-826`
 
 #### Parameters
 
@@ -583,17 +493,9 @@ Moves the robot's torso to a specified position.
 - If an invalid torso position is provided
 - Any exception during torso movement
 
-#### Implementation Notes
-- Maps string position to the appropriate `TorsoState` enum
-- Valid positions are "low" and "high" (case-insensitive)
-- Uses `MoveTorsoAction` to move the robot's torso
-- Logs torso movement to console
-
 ### 13. park_arms
 
 Moves the robot's arm(s) to the pre-defined parking position.
-
-**Source**: `robot_actions_api.py:828-862`
 
 #### Parameters
 
@@ -624,18 +526,9 @@ Moves the robot's arm(s) to the pre-defined parking position.
 - If an invalid arm value is provided
 - Any exception during arm movement
 
-#### Implementation Notes
-- Maps string arm value to the appropriate `Arms` enum values
-- Valid arm values are "left", "right", "both" (case-insensitive)
-- If no arm is specified, parks both arms
-- Uses `ParkArmsAction` to move the robot's arms to parking position
-- Logs arm movement to console
-
 ### 14. calculate_relative_distances
 
 Calculates the relative distances between two objects in the world, returning the difference in x, y, z coordinates and the Euclidean distance.
-
-**Source**: `robot_actions_api.py`
 
 #### Parameters
 
@@ -672,16 +565,9 @@ Calculates the relative distances between two objects in the world, returning th
 - If the world is not initialized
 - If either object is not found
 
-#### Implementation Notes
-
-- Returns the difference in x, y, z coordinates (dx, dy, dz) and the Euclidean distance between the two objects.
-- All values are rounded to three decimal places.
-
 ### 15. get_robot_pose
 
 Gets the current pose (position and orientation) of the PR2 robot in the simulation.
-
-**Source**: `robot_actions_api.py`
 
 #### Parameters
 
@@ -710,15 +596,9 @@ None
 - If the PR2 robot cannot be resolved in the simulation
 - Any exception during pose retrieval
 
-#### Implementation Notes
-- Uses the `simulated_robot` context manager for safe access
-- Returns position as a 3-element list and orientation as a 4-element quaternion list
-
 ### 16. get_placement_surfaces
 
 Returns information about available surfaces in the environment where objects can be placed.
-
-**Source**: `robot_actions_api.py`
 
 #### Parameters
 
@@ -736,6 +616,8 @@ None
       "description": "string",
       "position": [x, y, z],
       "dimensions": [width, depth, height],
+      "max_dx": number,
+      "max_dy": number,
       "recommended_for": ["object_type1", "object_type2", ...]
     },
     "surface_name2": {
@@ -757,17 +639,9 @@ None
 - If the environment is not initialized
 - Any exception during surface data retrieval
 
-#### Implementation Notes
-- Provides information about surfaces where objects can be placed
-- Each surface entry includes position, dimensions, and recommendations for object types
-- Surface data comes from a predefined configuration
-- Some surfaces have specific purposes (e.g., countertops for food preparation)
-
 ### 17. spawn_in_area
 
 Spawns an object on a specific named surface in the environment.
-
-**Source**: `robot_actions_api.py`
 
 #### Parameters
 
@@ -777,8 +651,8 @@ Spawns an object on a specific named surface in the environment.
 | `surface_name` | string | Yes | N/A | Name of the surface to place the object on |
 | `color` | string | No | Random | Color for the object |
 | `name` | string | No | Auto-generated | Custom name for the object |
-| `offset_x` | number | No | 0.0 | X-axis offset from the center of the surface |
-| `offset_y` | number | No | 0.0 | Y-axis offset from the center of the surface |
+| `offset_x` | number or null | No | Random | X-axis offset from center of surface |
+| `offset_y` | number or null | No | Random | Y-axis offset from center of surface |
 
 #### Return Value
 
@@ -792,7 +666,9 @@ Spawns an object on a specific named surface in the environment.
     "type": "string",
     "pose": [number, number, number],
     "color": "string"
-  }
+  },
+  "offsets": [number, number],
+  "surface": "string"
 }
 ```
 
@@ -806,29 +682,21 @@ Spawns an object on a specific named surface in the environment.
 
 #### Error Conditions
 - If the specified surface name doesn't exist
-- If object creation fails
+- If the generated coordinates are invalid
 - Any exception during the spawning process
-
-#### Implementation Notes
-- Uses the surface's position and applies the specified offset
-- Automatically adjusts the z-coordinate to be slightly above the surface
-- Integrates with the existing object spawning system
-- Allows for precise object placement in the environment
 
 ### 18. pick_and_place_on_surface
 
 Picks up an object and places it on a specific named surface.
-
-**Source**: `robot_actions_api.py`
 
 #### Parameters
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `object_name` | string | Yes | N/A | Name of the object to pick up |
-| `surface_name` | string | Yes | N/A | Name of the surface to place the object on |
-| `offset_x` | number | No | 0.0 | X-axis offset from the center of the surface |
-| `offset_y` | number | No | 0.0 | Y-axis offset from the center of the surface |
+| `surface_name` | string | Yes | N/A | Name of the surface to place on |
+| `offset_x` | number or null | No | Random | X-axis offset from center of surface |
+| `offset_y` | number or null | No | Random | Y-axis offset from center of surface |
 | `arm` | string | No | Auto-select | Which arm to use ('left', 'right', or null for automatic) |
 
 #### Return Value
@@ -841,6 +709,7 @@ Picks up an object and places it on a specific named surface.
   "object": "string",
   "surface": "string",
   "position": [number, number, number],
+  "offsets": [number, number],
   "arm_used": "string"
 }
 ```
@@ -859,116 +728,99 @@ Picks up an object and places it on a specific named surface.
 - If the pickup or placement fails
 - Any exception during the operation
 
-#### Implementation Notes
-- Combines object manipulation with surface knowledge
-- Uses the surface's position data and applies offsets for precise placement
-- Automatically adjusts the z-coordinate to be slightly above the surface
-- Integrates with the existing pickup and place system
-- Parks arms after completing the operation
+### 19. get_world_objects
 
-## API Server Implementation
+Retrieves all objects in the world and their positions with optional filtering by type, area, or excluded types.
 
-The API server (`api.py`) uses FastAPI to expose the `/execute` endpoint that routes requests to the appropriate function in `robot_actions_api.py`. It also initializes the environment at startup.
+#### Parameters
 
-### Key Components
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `exclude_types` | array[string] | No | ["floor", "wall", "ceiling", "ground", "kitchen", "apartment", "pr2"] | Types of objects to exclude |
+| `obj_type` | string | No | null | Type of object to filter by |
+| `area` | string | No | null | Area name to filter objects by |
 
-#### Environment Initialization
+#### Return Value
 
-**Source**: `api.py:28-69`
+**Success Response**:
+```json
+{
+  "status": "success",
+  "message": "Successfully retrieved objects from the world",
+  "objects": {
+    "object_name1": {
+      "type": "string",
+      "position": {
+        "x": number,
+        "y": number,
+        "z": number
+      },
+      "color": "string",
+      "area": "string"
+    },
+    "object_name2": {
+      ...
+    }
+  }
+}
+```
 
-- Initializes the simulation environment before starting the server
-- Imports environment functions dynamically to prevent auto-execution
-- Creates environment based on user selection (kitchen, apartment)
-- Spawns default objects if in kitchen environment:
-  - Blue spoon at [1.4, 1, 0.95]
-  - Red cereal at [1.4, 0.8, 0.95]
-  - Green milk at [1.4, 0.6, 0.95]
+**Error Response**:
+```json
+{
+  "status": "error",
+  "message": "Error message"
+}
+```
 
-#### Execute Command Endpoint
+#### Error Conditions
+- If the world is not initialized
+- Any exception during object retrieval
 
-**Source**: `api.py:100-157`
+## Additional Notes
 
-- Path: `/execute`
-- Method: POST
-- Accepts: JSON object with `command` and `params`
-- Routes to the appropriate function based on the command
-- Catches and returns exceptions as error responses
+### Object Types
+The API supports the following standard object types:
+- "cereal"
+- "milk"
+- "spoon"
+- "bowl"
 
-## Testing Implementation
+### Color Support
+The API supports the following colors:
+- "red"
+- "green"
+- "blue"
+- "yellow"
+- "white"
+- "black"
 
-The test module (`test_api.py`) provides functions to test each API endpoint. Each test function constructs an appropriate payload, sends it to the API server, and prints the response.
+### Arm Options
+When specifying an arm parameter, the following values are valid:
+- "left"
+- "right"
+- "both" (only for park_arms)
 
-### Test Functions
+### Torso Positions
+When specifying a torso position, the following values are valid:
+- "low"
+- "high"
 
-#### test_camera
-**Source**: `test_api.py:15-56`
+### Known Surface Areas
+The API knows about the following surfaces by default:
+- "kitchen_island_surface"
+- "sink_area_surface"
 
-Tests the `get_camera_images` endpoint and saves the resulting images to disk.
+## Error Handling
 
-#### test_move_robot
-**Source**: `test_api.py:59-65`
+All API calls catch exceptions and return an error response with a descriptive message. Common error scenarios include:
 
-Tests the `move_robot` endpoint with coordinates [0, 0, 0].
+1. Object not found in the environment
+2. Invalid parameters (wrong types, missing required fields)
+3. Robot cannot reach the specified location
+4. Robot arm cannot reach the object
+5. World initialization failure
+6. Surface not found
+7. Invalid coordinates or orientations
 
-#### test_pickup_and_place
-**Source**: `test_api.py:68-74`
-
-Tests the `pickup_and_place` endpoint with a cereal object and target location [1.4, 0.2, 0.95].
-
-#### test_robot_perceive
-**Source**: `test_api.py:77-83`
-
-Tests the `robot_perceive` endpoint with perception area "sink".
-
-#### test_transport_object
-**Source**: `test_api.py:86-92`
-
-Tests the `transport_object` endpoint with a cereal object and target location [1.4, 0.2, 0.95].
-
-#### test_calculate_object_distances
-**Source**: `test_api.py:95-101`
-
-Tests the `calculate_object_distances` endpoint with source object "cereal".
-
-#### test_look_at_object
-**Source**: `test_api.py:104-110`
-
-Tests the `look_at_object` endpoint with object name "cereal".
-
-#### test_detect_object
-**Source**: `test_api.py:113-119`
-
-Tests the `detect_object` endpoint with no parameters.
-
-#### test_move_and_rotate
-**Source**: `test_api.py:122-128`
-
-Tests the `move_and_rotate` endpoint with location [0, 0, 0] and angle 60 degrees.
-
-#### test_move_torso
-**Source**: `test_api.py:131-137`
-
-Tests the `move_torso` endpoint with position "high".
-
-#### test_park_arms
-**Source**: `test_api.py:141-147`
-
-Tests the `park_arms` endpoint with no parameters (both arms).
-
-#### test_enhanced_camera
-**Source**: `test_api.py:150-182`
-
-Tests the `get_enhanced_camera_images` endpoint and saves the resulting images to disk.
-
-#### test_spawn_objects
-**Source**: `test_api.py:185-195`
-
-Tests the `spawn_objects` endpoint with object "cereal" at coordinates [1.4, 0.4, 0.95].
-
-## Common Response Fields
-
-All API responses include the following common fields:
-
-- `status`: String value "success" or "error" indicating the result of the operation
-- `message`: Human-readable message explaining the result
-- Additional fields specific to each endpoint
+Error responses include the "status" field set to "error" and a "message" field with details.
