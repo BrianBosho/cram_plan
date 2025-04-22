@@ -82,6 +82,7 @@ from robot_actions_api import (
     get_enhanced_camera_images,
     get_robot_pose,
     calculate_relative_distances,
+    get_world_objects,
     # Add the new kitchen surface functions
     get_placement_surfaces,
     spawn_in_area,
@@ -167,6 +168,14 @@ async def execute_command(data: dict = Body(...)):
         elif command == "calculate_relative_distances":
             result = calculate_relative_distances(**params, world=world)
             return result
+        elif command == "get_world_objects":
+            result = get_world_objects(
+                exclude_types=params.get("exclude_types"),
+                area=params.get("area"),
+                obj_type=params.get("obj_type"),
+                world=world
+            )
+            return result
         # Add new kitchen surface API endpoints
         elif command == "get_placement_surfaces":
             result = get_placement_surfaces()
@@ -177,6 +186,7 @@ async def execute_command(data: dict = Body(...)):
         elif command == "pick_and_place_on_surface":
             result = pick_and_place_on_surface(**params)
             return result
+            
 
         else:
             return {"status": "error", "message": f"Unknown command: {command}"}
@@ -206,12 +216,12 @@ async def list_commands():
             "get_enhanced_camera_images",
             "get_robot_pose",
             "calculate_relative_distances",
+            "get_world_objects",
             "get_placement_surfaces",
             "place_object_on_surface",
             "spawn_on_surface",
-            "get_objects_on_surface"
+            "get_objects_on_surface",
             "pick_and_place_on_surface",
-            
         ]
     }
 

@@ -167,7 +167,15 @@ def test_robot_perceive():
         "params": {"perception_area": "table_area_main"}
     }
     response = requests.post(url, json=payload)
-    print(response.json())
+    result = response.json()
+    
+    print("Perceived objects:")
+    for obj in result.get("perceived_objects", []):
+        name = obj.get("name", "Unknown")
+        obj_type = obj.get("type", "Unknown")
+        print(f" - Name: {name}, Type: {obj_type}")
+    
+    return result
 
 # test transport object
 def test_transport_object():
@@ -182,7 +190,7 @@ def test_transport_object():
 def test_calculate_object_distances():
     payload = {
         "command": "calculate_object_distances",
-        "params": {"source_object": "cereal"}
+        "params": {"source_object": "cereal1"}
     }
     response = requests.post(url, json=payload)
     print(response.json())
@@ -346,9 +354,9 @@ def test_spawn_in_area():
     payload = {
         "command": "spawn_in_area",
         "params": {
-            "object_choice": "spoon",
+            "object_choice": "cereal",
             "surface_name": surface_name,
-            "color": "blue",
+            "color": "green",
             "name": f"test_spoon_{random_number}",
             "offset_x": None,  # Use None to get random offset
             "offset_y": None   # Use None to get random offset
@@ -396,6 +404,115 @@ def test_pick_and_place_on_surface():
     
     return result 
 
+def test_get_world_objects():
+    """
+    Test the get_world_objects API endpoint that retrieves all objects in the world
+    and their positions. Demonstrates filtering by area and object type.
+    
+    Returns:
+        dict: The JSON result from the server containing all objects in the world and their positions.
+    """
+    # Test 1: Get all objects (excluding environment elements)
+    print("\nTest 1: Getting all objects in the world...")
+    payload = {
+        "command": "get_world_objects",
+        "params": {
+            "exclude_types": ["floor", "wall", "ceiling", "ground", "kitchen", "apartment", "pr2"]
+        }
+    }
+    response = requests.post(url, json=payload)
+    result = response.json()
+    
+    if result["status"] == "success":
+        print(f"Found {len(result['objects'])} objects in the world:")
+        for obj_name, obj_info in result["objects"].items():
+            position = obj_info.get("position", {})
+            position_str = f"x: {position.get('x', 'N/A')}, y: {position.get('y', 'N/A')}, z: {position.get('z', 'N/A')}"
+            obj_type = obj_info.get("type", "Unknown")
+            color = obj_info.get("color", "N/A")
+            area = obj_info.get("area", "N/A")
+            print(f"- {obj_name} (Type: {obj_type}, Color: {color}, Area: {area})")
+            print(f"  Position: {position_str}")
+    else:
+        print(f"Error: {result['message']}")
+    
+    # Test 2: Filter objects by type
+    print("\nTest 2: Filtering objects by type (cereal)...")
+    payload = {
+        "command": "get_world_objects",
+        "params": {
+            "exclude_types": ["floor", "wall", "ceiling", "ground", "kitchen", "apartment", "pr2"],
+            "obj_type": "cereal"
+        }
+    }
+    response = requests.post(url, json=payload)
+    result = response.json()
+    
+    if result["status"] == "success":
+        print(f"Found {len(result['objects'])} milk objects:")
+        for obj_name, obj_info in result["objects"].items():
+            position = obj_info.get("position", {})
+            position_str = f"x: {position.get('x', 'N/A')}, y: {position.get('y', 'N/A')}, z: {position.get('z', 'N/A')}"
+            obj_type = obj_info.get("type", "Unknown")
+            color = obj_info.get("color", "N/A")
+            area = obj_info.get("area", "N/A")
+            print(f"- {obj_name} (Type: {obj_type}, Color: {color}, Area: {area})")
+            print(f"  Position: {position_str}")
+    else:
+        print(f"Error: {result['message']}")
+    
+    # Test 3: Filter objects by area
+    print("\nTest 3: Filtering objects by area (kitchen_island_surface)...")
+    payload = {
+        "command": "get_world_objects",
+        "params": {
+            "exclude_types": ["floor", "wall", "ceiling", "ground", "kitchen", "apartment", "pr2"],
+            "area": "kitchen_island_surface"
+        }
+    }
+    response = requests.post(url, json=payload)
+    result = response.json()
+    
+    if result["status"] == "success":
+        print(f"Found {len(result['objects'])} objects in sink_area_surface:")
+        for obj_name, obj_info in result["objects"].items():
+            position = obj_info.get("position", {})
+            position_str = f"x: {position.get('x', 'N/A')}, y: {position.get('y', 'N/A')}, z: {position.get('z', 'N/A')}"
+            obj_type = obj_info.get("type", "Unknown")
+            color = obj_info.get("color", "N/A")
+            print(f"- {obj_name} (Type: {obj_type}, Color: {color})")
+            print(f"  Position: {position_str}")
+    else:
+        print(f"Error: {result['message']}")
+    
+    # Test 4: Filter objects by both type and area
+    print("\nTest 4: Filtering objects by type and area (cereal in kitchen_island_surface)...")
+    payload = {
+        "command": "get_world_objects",
+        "params": {
+            "exclude_types": ["floor", "wall", "ceiling", "ground", "kitchen", "apartment", "pr2"],
+            "obj_type": "cereal",
+            "area": "kitchen_island_surface"
+        }
+    }
+    response = requests.post(url, json=payload)
+    result = response.json()
+    
+    if result["status"] == "success":
+        print(f"Found {len(result['objects'])} cereal objects in kitchen_island_surface:")
+        for obj_name, obj_info in result["objects"].items():
+            position = obj_info.get("position", {})
+            position_str = f"x: {position.get('x', 'N/A')}, y: {position.get('y', 'N/A')}, z: {position.get('z', 'N/A')}"
+            obj_type = obj_info.get("type", "Unknown")
+            color = obj_info.get("color", "N/A")
+            print(f"- {obj_name} (Type: {obj_type}, Color: {color})")
+            print(f"  Position: {position_str}")
+    else:
+        print(f"Error: {result['message']}")
+    
+    # Return the last result
+    return result
+
 
 # call spawn objects multiple times
 
@@ -420,7 +537,8 @@ test_calculate_relative_distances_function = False
 test_get_placement_surfaces_function = False
 test_kitchen_surfaces_function = False  # Enable the combined kitchen surfaces test
 test_spawn_in_area_function = False  # Enable the spawn_in_area test
-test_pick_and_place_on_surface_function = True
+test_pick_and_place_on_surface_function = False
+test_get_world_objects_function = True
 
 def main():
     if test_move == True:
@@ -459,6 +577,8 @@ def main():
         test_spawn_in_area()
     if test_pick_and_place_on_surface_function == True:
         test_pick_and_place_on_surface()
+    if test_get_world_objects_function == True:
+        test_get_world_objects()
 
 
 if __name__ == "__main__":

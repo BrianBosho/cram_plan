@@ -435,6 +435,144 @@ def calculate_object_distances(source_object=None, target_objects=None, exclude_
         
         return distances
 
+def get_world_objects(exclude_types=None, area=None, obj_type=None, world=None):
+    """
+    Get all objects in the world along with their positions.
+    
+    Parameters:
+    -----------
+    exclude_types : list or None
+        List of object types to exclude (like 'floor', 'wall', 'ceiling', 'ground')
+    area : str or None
+        Filter objects by the area they're in (e.g., 'sink_area_surface', 'kitchen_island_surface')
+    obj_type : str or None
+        Filter objects by their type (e.g., 'milk', 'cereal', 'bowl', 'spoon')
+    world : object or None
+        The world object containing all objects. If None, will try to get it.
+        
+    Returns:
+    --------
+    dict
+        A dictionary with object names as keys and their positions as values.
+        Each position is a dictionary with 'x', 'y', 'z' coordinates.
+        Example: {'bowl1': {'position': {'x': 1.2, 'y': 0.5, 'z': 0.8}, 'type': 'bowl', 'color': 'blue', 'area': 'kitchen_island'}}
+    """
+    try:
+        # Get the world if not provided
+        if world is None:
+            world = get_world_safely()
+            if world is None:
+                return {"status": "error", "message": "World is not initialized."}
+        
+        # Default exclusion list if not provided
+        if exclude_types is None:
+            exclude_types = ['floor', 'wall', 'ceiling', 'ground']
+        
+        # Get all objects and filter out excluded types
+        all_objects = world.objects
+        filtered_objects = []
+        
+        for obj in all_objects:
+            # Skip excluded types
+            if any(exclude_type in obj.name.lower() for exclude_type in exclude_types):
+                continue
+            filtered_objects.append(obj)
+        
+        # Build the result dictionary with object names and positions
+        result = {"status": "success", "objects": {}}
+        
+        for obj in filtered_objects:
+            try:
+                # Get position of the object
+                position = None
+                if hasattr(obj, 'get_position'):
+                    pos = obj.get_position()
+                    if hasattr(pos, 'x'):
+                        # If position has x, y, z attributes
+                        position = {
+                            'x': round(float(pos.x), 3),
+                            'y': round(float(pos.y), 3),
+                            'z': round(float(pos.z), 3)
+                        }
+                    else:
+                        # If position is a list or array
+                        position = {
+                            'x': round(float(pos[0]), 3),
+                            'y': round(float(pos[1]), 3),
+                            'z': round(float(pos[2]), 3)
+                        }
+                elif hasattr(obj, 'pose') and hasattr(obj.pose, 'position'):
+                    # If object has a pose with position
+                    pos = obj.pose.position
+                    if hasattr(pos, 'x'):
+                        position = {
+                            'x': round(float(pos.x), 3),
+                            'y': round(float(pos.y), 3),
+                            'z': round(float(pos.z), 3)
+                        }
+                    else:
+                        position = {
+                            'x': round(float(pos[0]), 3),
+                            'y': round(float(pos[1]), 3),
+                            'z': round(float(pos[2]), 3)
+                        }
+                else:
+                    # If no position information is available
+                    position = {'x': 0, 'y': 0, 'z': 0, 'error': 'No position data available'}
+                
+                # Initialize object info with position
+                obj_info = {'position': position}
+                
+                # Determine semantic object type
+                obj_type_value = get_object_type(obj)
+                obj_info['type'] = obj_type_value
+                
+                # Determine color name
+                color_name = get_color_name(obj)
+                obj_info['color'] = color_name
+                
+                # Determine object area/location
+                obj_area = determine_object_area(obj, world)
+                obj_info['area'] = obj_area
+                
+                # Add original type if available
+                if hasattr(obj, 'type'):
+                    obj_info['raw_type'] = str(obj.type)
+                
+                # Add original color if available
+                if hasattr(obj, 'color'):
+                    obj_info['raw_color'] = str(obj.color)
+                
+                # Apply area filtering if specified
+                if area is not None and obj_area.lower() != area.lower():
+                    continue
+                
+                # Apply type filtering if specified
+                if obj_type is not None and obj_type_value.lower() != obj_type.lower():
+                    continue
+                
+                # Add to results
+                result['objects'][obj.name] = obj_info
+                
+            except Exception as e:
+                # Handle errors for individual objects
+                result['objects'][obj.name] = {
+                    'error': f"Could not get object data: {str(e)}"
+                }
+        
+        # Add filter information to result
+        result['filters_applied'] = {
+            'exclude_types': exclude_types,
+            'area': area,
+            'type': obj_type
+        }
+        
+        return result
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": f"Error retrieving world objects: {str(e)}"}
+
 def move_robot(coordinates=None):
     """
     Move robot to specified coordinates without interactive prompts.
@@ -1957,3 +2095,261 @@ def get_random_surface_offset(surface_name):
     offset_y = round(offset_y, 3)
     
     return (offset_x, offset_y)
+
+def get_object_type(obj):
+    """
+    Determine the semantic type of an object (milk, cereal, bowl, etc.)
+    
+    Parameters:
+    -----------
+    obj : object
+        The object to determine type for
+        
+    Returns:
+    --------
+    str
+        Standardized object type (milk, cereal, bowl, spoon, etc.)
+    """
+    # First check if object has a type attribute we can use
+    if hasattr(obj, 'type'):
+        obj_type = str(obj.type)
+        
+        # Check for common types in the type string
+        type_mapping = {
+            'milk': 'milk',
+            'cereal': 'cereal', 
+            'bowl': 'bowl',
+            'spoon': 'spoon',
+            'generic': 'unknown'
+        }
+        
+        for type_key, type_value in type_mapping.items():
+            if type_key.lower() in obj_type.lower():
+                return type_value
+    
+    # If no type attribute or not matched, try to infer from name
+    if hasattr(obj, 'name'):
+        obj_name = obj.name.lower()
+        
+        # Check for common objects in the name
+        if 'milk' in obj_name:
+            return 'milk'
+        elif 'cereal' in obj_name:
+            return 'cereal'
+        elif 'bowl' in obj_name:
+            return 'bowl'
+        elif 'spoon' in obj_name:
+            return 'spoon'
+    
+    # If we can't determine, return unknown
+    return 'unknown'
+
+def get_color_name(obj):
+    """
+    Get a standardized color name for an object
+    
+    Parameters:
+    -----------
+    obj : object
+        The object to get color for
+        
+    Returns:
+    --------
+    str
+        Standardized color name (red, blue, green, yellow, black, etc.)
+    """
+    # Default color
+    color_name = 'unknown'
+    
+    # Check if object has a color attribute
+    if hasattr(obj, 'color'):
+        # First check if it's a string representation that we need to parse
+        color_str = str(obj.color).lower()
+        
+        # Check for direct string matches first
+        color_mapping = {
+            'red': 'red',
+            'blue': 'blue',
+            'green': 'green',
+            'yellow': 'yellow',
+            'black': 'black',
+            'white': 'white',
+            'gray': 'gray',
+            'grey': 'gray',
+            'purple': 'purple',
+            'orange': 'orange',
+            'brown': 'brown',
+            'wood': 'wood',
+            'silver': 'silver',
+            'stone': 'stone',
+            'metal': 'metal',
+            'accent': 'accent',
+            'accent2': 'accent2',
+            'wall': 'wall',
+            'wall2': 'wall2',
+            'ocean_blue': 'ocean_blue',
+            'floor': 'floor'
+        }
+        
+        # First try direct match with ColorWrapper names
+        for color_key in color_mapping:
+            if color_key in color_str:
+                return color_key
+        
+        # Extract RGB values from string representation if in format "Color(R=0.0, G=0.0, B=1.0, A=1.0)"
+        r, g, b = None, None, None
+        
+        if "color(r=" in color_str or "color(r =" in color_str:
+            try:
+                # Extract values from the string like "Color(R=0.0, G=0.0, B=1.0, A=1.0)"
+                parts = color_str.replace('color(', '').replace(')', '').split(',')
+                for part in parts:
+                    if 'r=' in part or 'r =' in part:
+                        r = float(part.split('=')[1].strip())
+                    elif 'g=' in part or 'g =' in part:
+                        g = float(part.split('=')[1].strip())
+                    elif 'b=' in part or 'b =' in part:
+                        b = float(part.split('=')[1].strip())
+            except Exception:
+                pass
+        
+        # Try to get rgba values directly if the color object has get_rgba method
+        if r is None and hasattr(obj.color, 'get_rgba'):
+            try:
+                rgba = obj.color.get_rgba()
+                r, g, b = rgba[0], rgba[1], rgba[2]
+            except Exception:
+                pass
+        
+        # Try direct attribute access if string parsing failed
+        if r is None and hasattr(obj.color, 'r') and hasattr(obj.color, 'g') and hasattr(obj.color, 'b'):
+            try:
+                r = float(obj.color.r)
+                g = float(obj.color.g)
+                b = float(obj.color.b)
+            except Exception:
+                pass
+                
+        # If we have RGB values, find the closest match to our ColorWrapper colors
+        if r is not None and g is not None and b is not None:
+            # Define RGB values for all colors in ColorWrapper
+            color_rgb_values = {
+                "red": (1.0, 0.0, 0.0),
+                "green": (0.0, 1.0, 0.0),
+                "blue": (0.0, 0.0, 1.0),
+                "yellow": (1.0, 1.0, 0.0),
+                "white": (1.0, 1.0, 1.0),
+                "black": (0.1, 0.1, 0.1),
+                "brown": (0.65, 0.32, 0.17),
+                "wood": (0.82, 0.70, 0.55),
+                "silver": (0.75, 0.75, 0.75),
+                "stone": (0.35, 0.35, 0.40),
+                "metal": (0.85, 0.85, 0.85),
+                "accent": (0.50, 0.60, 0.50),
+                "accent2": (0.60, 0.50, 0.30),
+                "gray": (0.70, 0.70, 0.70),
+                "wall": (0.90, 0.90, 0.90),
+                "wall2": (0.60, 0.60, 0.60),
+                "ocean_blue": (0.00, 0.50, 0.70),
+                "floor": (0.95, 0.95, 0.95)
+            }
+            
+            # Find the closest color match using Euclidean distance
+            best_match = None
+            smallest_distance = float('inf')
+            
+            for color_name, rgb in color_rgb_values.items():
+                # Calculate Euclidean distance between colors
+                distance = ((r - rgb[0])**2 + (g - rgb[1])**2 + (b - rgb[2])**2) ** 0.5
+                
+                if distance < smallest_distance:
+                    smallest_distance = distance
+                    best_match = color_name
+            
+            # Only return if it's a good match
+            if smallest_distance < 0.3:  # Threshold for "close enough"
+                return best_match
+            
+            # Exact matches for primary colors (handle the specific cases in your example)
+            if abs(r-1.0) < 0.01 and abs(g-0.0) < 0.01 and abs(b-0.0) < 0.01:
+                return "red"
+            elif abs(r-0.0) < 0.01 and abs(g-1.0) < 0.01 and abs(b-0.0) < 0.01:
+                return "green"
+            elif abs(r-0.0) < 0.01 and abs(g-0.0) < 0.01 and abs(b-1.0) < 0.01:
+                return "blue"
+            elif abs(r-1.0) < 0.01 and abs(g-1.0) < 0.01 and abs(b-0.0) < 0.01:
+                return "yellow"
+    
+    return color_name
+
+def determine_object_area(obj, world=None):
+    """
+    Determine which area/surface the object is located on
+    
+    Parameters:
+    -----------
+    obj : object
+        The object to determine area for
+    world : object
+        The world object (needed to access area definitions)
+        
+    Returns:
+    --------
+    str
+        Area name (kitchen_island, sink_area, counter, etc.)
+    """
+    # Import kitchen surfaces utility
+    try:
+        from utils.kitchen_surfaces import PLACEMENT_SURFACES
+        
+        # Get object position
+        position = None
+        if hasattr(obj, 'get_position'):
+            pos = obj.get_position()
+            if hasattr(pos, 'x'):
+                position = (float(pos.x), float(pos.y), float(pos.z))
+            else:
+                position = (float(pos[0]), float(pos[1]), float(pos[2]))
+        elif hasattr(obj, 'pose') and hasattr(obj.pose, 'position'):
+            pos = obj.pose.position
+            if hasattr(pos, 'x'):
+                position = (float(pos.x), float(pos.y), float(pos.z))
+            else:
+                position = (float(pos[0]), float(pos[1]), float(pos[2]))
+        
+        if position is None:
+            return 'unknown'
+        
+        x, y, z = position
+        
+        # Check each defined surface to see if the object is on it
+        for surface_name, surface_info in PLACEMENT_SURFACES.items():
+            # Skip surfaces without position information
+            if 'position' not in surface_info:
+                continue
+                
+            surface_pos = surface_info['position']
+            if len(surface_pos) < 3:
+                continue
+                
+            surface_x, surface_y, surface_z = surface_pos
+            
+            # Get the bounds for this surface
+            max_dx = surface_info.get('max_dx', 0.5)
+            max_dy = surface_info.get('max_dy', 0.5)
+            height_tolerance = 0.2  # How much above the surface to check
+            
+            # Check if object is within bounds of this surface
+            if (abs(x - surface_x) <= max_dx and 
+                abs(y - surface_y) <= max_dy and
+                abs(z - (surface_z + 0.1)) <= height_tolerance):
+                return surface_name
+        
+        # If no matching surface found
+        return 'undetermined'
+    except ImportError:
+        # If kitchen surfaces module not available
+        return 'unknown'
+    except Exception as e:
+        print(f"Error determining object area: {str(e)}")
+        return 'error'
