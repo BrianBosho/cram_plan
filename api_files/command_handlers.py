@@ -431,6 +431,42 @@ class CalculateObjectDistancesHandler(RobotCommandHandler):
         if "exclude_object_names" in params:
             api_params["exclude_object_names"] = params["exclude_object_names"]
         return {"command": "calculate_object_distances", "params": api_params}
+    
+class GetWorldObjectsHandler(RobotCommandHandler):
+    """Handler for retrieving objects in the world with optional filtering"""
+    
+    def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+        # Validate exclude_types if provided
+        if "exclude_types" in params and not isinstance(params["exclude_types"], list):
+            return False, "exclude_types must be a list of strings"
+            
+        # Validate obj_type if provided
+        if "obj_type" in params and not isinstance(params["obj_type"], str):
+            return False, "obj_type must be a string"
+            
+        # Validate area if provided
+        if "area" in params and not isinstance(params["area"], str):
+            return False, "area must be a string"
+            
+        return True, None
+    
+    def execute(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        api_params = {}
+        
+        # Add parameters if provided
+        if "exclude_types" in params:
+            api_params["exclude_types"] = params["exclude_types"]
+            
+        if "obj_type" in params:
+            api_params["obj_type"] = params["obj_type"]
+            
+        if "area" in params:
+            api_params["area"] = params["area"]
+            
+        return {
+            "command": "get_world_objects",
+            "params": api_params
+        }
 
 # Handler mapping for all robot commands
 handler_mapping = {
@@ -454,4 +490,5 @@ handler_mapping = {
     "get_robot_pose": GetRobotPoseHandler(),
     "calculate_relative_distances": CalculateRelativeDistancesHandler(),
     "calculate_object_distances": CalculateObjectDistancesHandler(),
+    "get_world_objects": GetWorldObjectsHandler(),
 }

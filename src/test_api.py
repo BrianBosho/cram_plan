@@ -151,11 +151,13 @@ def test_move_robot():
     response = requests.post(url, json=payload) 
     print(response.json())
 
+
+
 # test pickup and place
 def test_pickup_and_place():
     payload = {
         "command": "pickup_and_place",
-        "params": {"object_name": "cereal1", "target_location": [10, 10, 0.95]}
+        "params": {"object_name": "cereal", "target_location": [-1.0675, 1.7192, 0.95]}
     }
     response = requests.post(url, json=payload)
     print(response.json())
@@ -528,7 +530,7 @@ test_move_and_rotate_function = False
 test_move_torso_function = False
 test_park_arms_function = False
 test_enhanced_camera_function = False
-test_spawn_objects_function = True
+test_spawn_objects_function = False
 test_robot_pose_function = False
 # To enable the test, set the flag to True:
 test_calculate_relative_distances_function = False
@@ -536,9 +538,9 @@ test_calculate_relative_distances_function = False
 # Test flags for kitchen surface functions
 test_get_placement_surfaces_function = False
 test_kitchen_surfaces_function = False  # Enable the combined kitchen surfaces test
-test_spawn_in_area_function = True  # Enable the spawn_in_area test
-test_pick_and_place_on_surface_function = True
-test_get_world_objects_function = False
+test_spawn_in_area_function = False  # Enable the spawn_in_area test
+test_pick_and_place_on_surface_function = False
+test_get_world_objects_function = True
 
 def main():
     if test_move == True:

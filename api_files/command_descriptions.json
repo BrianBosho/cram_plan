@@ -1,22 +1,154 @@
-{
-    "move_robot": "Move the robot base to specific coordinates in the environment.",
-    "pickup_and_place": "Pick up an object and place it at a given set of coordinates.",
-    "transport_object": "Carry an object from its current location to a target position.",
-    "spawn_objects": "Create a new object at specified coordinates in the simulation.",
-    "spawn_in_area": "Create a new object on a named surface, with optional position offsets.",
-    "look_at_object": "Turn the robot's head or camera to focus on a specific object.",
-    "detect_object": "Detect and return information about objects in the robot's view.",
-    "robot_perceive": "Scan and list all objects perceived in a specified area.",
-    "get_placement_surfaces": "List all available surfaces where objects can be placed.",
-    "pick_and_place_on_surface": "Pick up an object and place it on a named surface, with optional offsets.",
-    "move_torso": "Raise or lower the robot's torso to a specified position.",
-    "park_arms": "Move one or both arms to their parking (stowed) position.",
-    "unpack_arms": "Move one or both arms from the stowed to the ready position.",
-    "move_and_rotate": "Move the robot to a location and/or rotate it to a given angle.",
-    "get_camera_images": "Capture and return raw images from the robot's camera sensors.",
-    "get_enhanced_camera_images": "Capture and return enhanced, color-mapped camera images.",
-    "list_robot_commands": "List all available robot API commands and their descriptions.",
-    "get_robot_pose": "Get the robot's current position and orientation in the world.",
-    "calculate_relative_distances": "Get the dx, dy, dz, and Euclidean distance between two objects.",
-    "calculate_object_distances": "Compute distances between one object and others, or all pairs."
+ {
+    "spawn_objects": {
+        "description": "Creates an object in the simulation environment at specified coordinates.",
+        "parameters": {
+            "object_choice": "Type of object to spawn ('cereal', 'milk', 'spoon', 'bowl')",
+            "coordinates": "3D coordinates [x, y, z] for object placement",
+            "color": "Color for the object ('red', 'green', 'blue', 'yellow', 'white', 'black')",
+            "name": "Custom name for the object (optional)"
+        },
+        "example": "spawn_objects object_choice=cereal coordinates=[1.4, 0.8, 0.95] color=red"
+    },
+    "move_robot": {
+        "description": "Moves the robot to specified coordinates.",
+        "parameters": {
+            "coordinates": "3D coordinates [x, y, z] to move to"
+        },
+        "example": "move_robot coordinates=[0, 1, 0]"
+    },
+    "pickup_and_place": {
+        "description": "Picks up an object and places it at specified coordinates.",
+        "parameters": {
+            "object_name": "Name of the object to pick up",
+            "target_location": "3D coordinates [x, y, z] for placement",
+            "arm": "Which arm to use ('left', 'right', or null for automatic)"
+        },
+        "example": "pickup_and_place object_name=cereal1 target_location=[1.4, 0.8, 0.95]"
+    },
+    "robot_perceive": {
+        "description": "Makes the robot perceive its environment and return detected objects.",
+        "parameters": {
+            "perception_area": "Area to perceive ('table_area_main', 'kitchen_area', etc.)"
+        },
+        "example": "robot_perceive perception_area=table_area_main"
+    },
+    "transport_object": {
+        "description": "Transports an object to a specified location using the robot's arms.",
+        "parameters": {
+            "object_name": "Name of the object to transport",
+            "target_location": "3D coordinates [x, y, z] for target location",
+            "arm": "Which arm to use ('left', 'right')"
+        },
+        "example": "transport_object object_name=cereal1 target_location=[1.4, 0.8, 0.95] arm=right"
+    },
+    "calculate_object_distances": {
+        "description": "Calculates distances between objects in the world.",
+        "parameters": {
+            "source_object": "Name of source object (if null, calculates distances between all pairs)",
+            "target_objects": "List of target object names (if null, uses all objects)",
+            "exclude_types": "List of object types to exclude"
+        },
+        "example": "calculate_object_distances source_object=cereal1"
+    },
+    "look_at_object": {
+        "description": "Makes the robot look at a specified object.",
+        "parameters": {
+            "obj_name": "Name of the object to look at"
+        },
+        "example": "look_at_object obj_name=cereal1"
+    },
+    "detect_object": {
+        "description": "Detects objects in the robot's environment.",
+        "parameters": {
+            "object_name": "Name of specific object to detect (optional)",
+            "location": "Location to search for objects (optional)"
+        },
+        "example": "detect_object"
+    },
+    "move_and_rotate": {
+        "description": "Moves the robot to a specified location and rotates it.",
+        "parameters": {
+            "location": "3D coordinates [x, y, z] to move to",
+            "angle": "Angle in degrees to rotate around Z axis"
+        },
+        "example": "move_and_rotate location=[0, 0, 0] angle=90"
+    },
+    "move_torso": {
+        "description": "Moves the robot's torso to a specified position.",
+        "parameters": {
+            "position": "Position to move the torso to ('low', 'high')"
+        },
+        "example": "move_torso position=high"
+    },
+    "park_arms": {
+        "description": "Moves the robot's arms to parking position.",
+        "parameters": {
+            "arm": "Which arm to park ('left', 'right', 'both')"
+        },
+        "example": "park_arms arm=both"
+    },
+    "get_camera_images": {
+        "description": "Captures images from the robot's camera.",
+        "parameters": {
+            "target_distance": "Distance in meters to the target point"
+        },
+        "example": "get_camera_images target_distance=2.0"
+    },
+    "get_enhanced_camera_images": {
+        "description": "Captures enhanced visualization of images from the robot's camera.",
+        "parameters": {
+            "target_distance": "Distance in meters to the target point"
+        },
+        "example": "get_enhanced_camera_images target_distance=2.0"
+    },
+    "get_robot_pose": {
+        "description": "Gets the current pose (position and orientation) of the robot.",
+        "parameters": {},
+        "example": "get_robot_pose"
+    },
+    "calculate_relative_distances": {
+        "description": "Calculates the relative distances between two objects in the world.",
+        "parameters": {
+            "object_name_1": "Name of the first object",
+            "object_name_2": "Name of the second object"
+        },
+        "example": "calculate_relative_distances object_name_1=cereal1 object_name_2=spoon1"
+    },
+    "get_placement_surfaces": {
+        "description": "Returns information about available surfaces for object placement.",
+        "parameters": {},
+        "example": "get_placement_surfaces"
+    },
+    "spawn_in_area": {
+        "description": "Spawns an object on a specific named surface with optional offsets.",
+        "parameters": {
+            "object_choice": "Type of object to spawn ('cereal', 'milk', 'spoon', 'bowl')",
+            "surface_name": "Name of the surface to place on (required)",
+            "color": "Color for the object",
+            "name": "Custom name for the object (optional)",
+            "offset_x": "X-axis offset from center of surface (null for random)",
+            "offset_y": "Y-axis offset from center of surface (null for random)"
+        },
+        "example": "spawn_in_area object_choice=cereal surface_name=kitchen_island_surface color=green offset_x=0.2 offset_y=-0.1"
+    },
+    "pick_and_place_on_surface": {
+        "description": "Picks up an object and places it on a specific surface with optional offsets.",
+        "parameters": {
+            "object_name": "Name of the object to pick up (required)",
+            "surface_name": "Name of the surface to place on (required)",
+            "offset_x": "X-axis offset from center of surface (null for random)",
+            "offset_y": "Y-axis offset from center of surface (null for random)",
+            "arm": "Which arm to use ('left', 'right', or null for automatic)"
+        },
+        "example": "pick_and_place_on_surface object_name=cereal1 surface_name=kitchen_island_surface offset_x=0.1 offset_y=0.2 arm=right"
+    },
+    "get_world_objects": {
+        "description": "Retrieves all objects in the world with optional filtering by type and area.",
+        "parameters": {
+            "exclude_types": "List of object types to exclude",
+            "obj_type": "Type of object to filter by (optional)",
+            "area": "Area name to filter objects by (optional)"
+        },
+        "example": "get_world_objects exclude_types=['floor', 'wall', 'ceiling'] obj_type=cereal area=kitchen_island_surface"
+    }
 }
